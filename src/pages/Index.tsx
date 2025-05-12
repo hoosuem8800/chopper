@@ -163,11 +163,35 @@ const Index = () => {
         if (response.status === 200 && response.data) {
           console.log("Successfully fetched creators data");
           console.log("Creators API raw response data:", response.data);
-          // Process the response data here
+          
+          // Process the response data and set team members
+          if (Array.isArray(response.data) && response.data.length > 0) {
+            const formattedTeamMembers = response.data.map(creator => ({
+              id: creator.id,
+              first_name: creator.first_name || '',
+              last_name: creator.last_name || '',
+              email: creator.email || '',
+              phone_number: creator.phone_number || '',
+              job_title: creator.job_title || '',
+              role: creator.role || '',
+              contribution: creator.contribution || '',
+              profile_picture: creator.profile_picture || '',
+              is_active: creator.is_active === undefined ? true : creator.is_active
+            }));
+            
+            console.log("Formatted team members:", formattedTeamMembers);
+            setTeamMembers(formattedTeamMembers);
+          } else {
+            // If no data or invalid format, use fallback data
+            console.log("No valid team data found, using fallback data");
+            setTeamMembers(fallbackTeamData);
+          }
         }
       } catch (error) {
         console.error("Error fetching creators data:", error);
-        // Handle error appropriately
+        // Use fallback data on error
+        console.log("Error occurred, using fallback team data");
+        setTeamMembers(fallbackTeamData);
       } finally {
         setLoadingTeam(false);
       }
