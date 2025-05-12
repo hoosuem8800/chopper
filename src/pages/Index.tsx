@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { CloudUpload, Cpu, FileText, Check, Calendar, ClipboardCheck, ShieldCheck, Loader2, ExternalLink, Code, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import axios from 'axios';
-import { API_BASE_URL } from '@/services/api';
+import { API_BASE_URL, logger } from '@/services/api';
 
 // Define interfaces for data from different APIs
 interface UserProfile {
@@ -148,7 +148,7 @@ const Index = () => {
     const fetchTeamData = async () => {
       setLoadingTeam(true);
       try {
-        console.log("Attempting to connect to API at:", `${API_BASE_URL}/creators/`);
+        logger.log("Attempting to connect to API at:", `${API_BASE_URL}/creators/`);
         
         const response = await axios.get(`${API_BASE_URL}/creators/`, { 
           timeout: 5000,
@@ -158,11 +158,11 @@ const Index = () => {
           }
         });
         
-        console.log("Response status:", response.status);
+        logger.log("Response status:", response.status);
         
         if (response.status === 200 && response.data) {
-          console.log("Successfully fetched creators data");
-          console.log("Creators API raw response data:", response.data);
+          logger.log("Successfully fetched creators data");
+          logger.log("Creators API raw response data:", response.data);
           
           // Process the response data and set team members
           if (Array.isArray(response.data) && response.data.length > 0) {
@@ -179,18 +179,18 @@ const Index = () => {
               is_active: creator.is_active === undefined ? true : creator.is_active
             }));
             
-            console.log("Formatted team members:", formattedTeamMembers);
+            logger.log("Formatted team members:", formattedTeamMembers);
             setTeamMembers(formattedTeamMembers);
           } else {
             // If no data or invalid format, use fallback data
-            console.log("No valid team data found, using fallback data");
+            logger.log("No valid team data found, using fallback data");
             setTeamMembers(fallbackTeamData);
           }
         }
       } catch (error) {
-        console.error("Error fetching creators data:", error);
+        logger.error("Error fetching creators data:", error);
         // Use fallback data on error
-        console.log("Error occurred, using fallback team data");
+        logger.log("Error occurred, using fallback team data");
         setTeamMembers(fallbackTeamData);
       } finally {
         setLoadingTeam(false);
@@ -513,7 +513,7 @@ const Index = () => {
                         className="w-full h-full object-cover"
                         loading="lazy"
                         onError={(e) => {
-                          console.log(`Image load error for ${member.first_name} ${member.last_name}`, e);
+                          logger.log(`Image load error for ${member.first_name} ${member.last_name}`);
                           const target = e.target as HTMLImageElement;
                           target.onerror = null; // Prevent infinite loops
                           target.src = `https://ui-avatars.com/api/?name=${member.first_name}+${member.last_name}&background=00C1D4&color=fff&size=256`;

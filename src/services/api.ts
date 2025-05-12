@@ -3,6 +3,25 @@ import axios from 'axios';
 // Set to true to use mock data when backend is not available
 export const USE_MOCK_DATA = false;
 
+// Add a secure logger function to conditionally show logs only in development
+export const logger = {
+  log: (...args: any[]) => {
+    if (import.meta.env.DEV) {
+      console.log(...args);
+    }
+  },
+  warn: (...args: any[]) => {
+    if (import.meta.env.DEV) {
+      console.warn(...args);
+    }
+  },
+  error: (...args: any[]) => {
+    if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
+      console.error(...args);
+    }
+  }
+};
+
 // Get the current frontend port from the window location
 const FRONTEND_PORT = window.location.port;
 
