@@ -149,10 +149,12 @@ const Index = () => {
       try {
         // Try different possible backend URLs
         const potentialBackendUrls = [
-          'http://localhost:8000',
-          'http://127.0.0.1:8000',
-          `${window.location.origin}`,
-          `${window.location.protocol}//${window.location.hostname}:8000`
+          '/api', // Relative path for Vercel deployment with proxying
+          'https://backends-production-d57e.up.railway.app/api', // Direct Railway backend URL
+          'http://localhost:8000/api',
+          'http://127.0.0.1:8000/api',
+          `${window.location.origin}/api`,
+          `${window.location.protocol}//${window.location.hostname}:8000/api`
         ];
         
         let apiSuccess = false;
@@ -162,7 +164,7 @@ const Index = () => {
         for (const baseUrl of potentialBackendUrls) {
           if (apiSuccess) break;
           
-          const CREATORS_API = `${baseUrl}/api/creators/`;
+          const CREATORS_API = `${baseUrl}/creators/`;
           console.log("Attempting to connect to API at:", CREATORS_API);
           
           try {

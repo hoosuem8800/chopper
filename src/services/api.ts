@@ -10,9 +10,20 @@ const FRONTEND_PORT = window.location.port;
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || 8000;
 const PRODUCTION_API_URL = 'https://backends-production-d57e.up.railway.app/api';
 const LOCAL_API_URL = `http://localhost:${BACKEND_PORT}/api`;
+const RELATIVE_API_URL = '/api'; // New: Use relative URL for production on Vercel
 
-// Use production URL if we're not in development mode
-const API_BASE_URL = import.meta.env.DEV ? LOCAL_API_URL : PRODUCTION_API_URL;
+// Determine API base URL based on environment and availability
+let API_BASE_URL;
+
+// In production, try using relative paths first (for Vercel deployments)
+if (!import.meta.env.DEV) {
+  API_BASE_URL = RELATIVE_API_URL;
+} else {
+  // In development, use localhost
+  API_BASE_URL = LOCAL_API_URL;
+}
+
+console.log('Using API base URL:', API_BASE_URL);
 
 // Export API base URL
 export { API_BASE_URL };
@@ -131,10 +142,10 @@ export const formatProfilePictureUrl = (profilePicture: string | null | undefine
     return profilePicture;
   }
   
-  // Get the backend URL - use the same logic as our API_BASE_URL
-  const backendUrl = import.meta.env.PROD
-    ? 'https://backends-production-d57e.up.railway.app'
-    : `http://${window.location.hostname}:8000`;
+  // Get the backend URL - use PRODUCTION_API_URL without the /api suffix for media files
+  const backendUrl = import.meta.env.DEV
+    ? `http://${window.location.hostname}:8000`
+    : PRODUCTION_API_URL.replace('/api', '');
   
   // Remove any duplicate paths to prevent errors
   let cleanPath = profilePicture;
@@ -2219,21 +2230,26 @@ function formatImageUrl(imageUrl: string): string {
     return imageUrl;
   }
   
+  // Get the backend base URL without the /api suffix
+  const backendBaseUrl = import.meta.env.DEV
+    ? `http://${window.location.hostname}:8000`
+    : PRODUCTION_API_URL.replace('/api', ''); 
+  
   // Handle relative paths
   let formattedUrl;
   if (imageUrl.startsWith('/')) {
     // If it starts with /, join it with base URL
-    formattedUrl = `${API_BASE_URL}${imageUrl}`;
+    formattedUrl = `${backendBaseUrl}${imageUrl}`;
   } else if (imageUrl.startsWith('media/')) {
     // If it already includes media/ prefix
-    formattedUrl = `${API_BASE_URL}/${imageUrl}`;
+    formattedUrl = `${backendBaseUrl}/${imageUrl}`;
   } else {
     // Otherwise, add media/ prefix
-    formattedUrl = `${API_BASE_URL}/media/${imageUrl}`;
+    formattedUrl = `${backendBaseUrl}/media/${imageUrl}`;
   }
   
-  // Ensure the final URL uses HTTPS
-  if (formattedUrl.startsWith('http://')) {
+  // Ensure the final URL uses HTTPS for production
+  if (!import.meta.env.DEV && formattedUrl.startsWith('http://')) {
     formattedUrl = formattedUrl.replace('http://', 'https://');
     console.log('Converted formatted URL to HTTPS:', formattedUrl);
   }
