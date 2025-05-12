@@ -1,0 +1,2534 @@
+import React, { useState, useEffect, ReactElement } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL, api } from '@/services/api';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Plus, Pencil, Trash2, AlertCircle, RefreshCw, Filter, Search, X, CheckCircle, Lock, User, Calendar, ArrowRight, ArrowLeft, Clock, Mail } from 'lucide-react';
+import { toast } from "@/components/ui/use-toast";
+import axios from 'axios';
+import { Textarea } from "@/components/ui/textarea";
+
+interface ApiResource {
+  id: number;
+  [key: string]: any;
+}
+
+const ManagementPage: React.FC = (): ReactElement => {
+  const { resource } = useParams<{ resource: string }>();
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const [data, setData] = useState<ApiResource[]>([]);
+  const [filteredData, setFilteredData] = useState<ApiResource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [selectedItem, setSelectedItem] = useState<ApiResource | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDebugMode, setIsDebugMode] = useState(false);
+  
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // State for user and doctor dropdowns
+  const [users, setUsers] = useState<ApiResource[]>([]);
+  const [doctors, setDoctors] = useState<ApiResource[]>([]);
+  const [scans, setScans] = useState<any[]>([]);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
+  
+  // State for time slots
+  const [takenSlots, setTakenSlots] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [appointmentStep, setAppointmentStep] = useState(0);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  
+  // State for payments form
+  const [selectedPaymentUserId, setSelectedPaymentUserId] = useState<string>('');
+  
+  // State for consultations form
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('');
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
+  const [selectedScanId, setSelectedScanId] = useState<string>('');
+  
+  // Define available time slots
+  const TIME_SLOTS = [
+    "09:00 AM", "10:00 AM", "11:00 AM", 
+    "02:00 PM", "03:00 PM", "04:00 PM"
+  ];
+  
+  // Function to fetch taken time slots for a specific date
+  const fetchTakenSlots = async (date: string) => {
+    if (!date) return;
+    
+    setLoadingDropdowns(true);
+    try {
+      const response = await api.get(`/appointments/taken-slots/?date=${date}`);
+      const newTakenSlots = response.data?.taken_slots || [];
+      setTakenSlots(newTakenSlots);
+      console.log('Taken slots for date', date, ':', newTakenSlots);
+    } catch (error) {
+      console.error('Error fetching taken slots:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch available time slots. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingDropdowns(false);
+    }
+  };
+  
+  // Check if a slot is available (not in takenSlots)
+  const isSlotAvailable = (slot: string): boolean => {
+    return !takenSlots.includes(slot);
+  };
+  
+  // Handle date selection
+  const handleDateSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setSelectedDate(newDate);
+    fetchTakenSlots(newDate);
+  };
+  
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    if (user?.role !== 'admin') {
+      navigate('/');
+      return;
+    }
+    
+    // Add protection for resources that shouldn't be managed by admin
+    if (resource === 'scans' || resource === 'notifications') {
+      setError(`${resource} cannot be managed in the admin panel as they are system-controlled.`);
+      // Keep them on the page but show error message instead of redirecting
+    }
+  }, [isAuthenticated, user, navigate, resource]);
+
+  // Maps resource name to API endpoint
+  const resourceToEndpoint = {
+    users: '/users/',
+    doctors: '/doctors/',
+    profiles: '/users/',  // Changed to '/users/' since UserProfileViewSet restricts to current user only
+    scans: '/scans/',
+    appointments: '/appointments/',
+    consultations: '/consultations/',
+    payments: '/payments/',  // Changed back to standard payments endpoint
+    notifications: '/notifications/',
+  };
+
+  // Resource display name
+  const getResourceDisplayName = () => {
+    if (!resource) return 'Resources';
+    // Add special case for 'profiles' resource to display as 'User Profiles'
+    if (resource === 'profiles') return 'User Profiles';
+    return resource.charAt(0).toUpperCase() + resource.slice(1);
+  };
+
+  // Toggle debug mode
+  const toggleDebugMode = () => {
+    setIsDebugMode(!isDebugMode);
+  };
+
+  // Debug information
+  const getDebugInfo = () => {
+    return {
+      resource,
+      endpoint: resource ? resourceToEndpoint[resource as keyof typeof resourceToEndpoint] : null,
+      page,
+      totalPages,
+      totalItems,
+      dataLength: data.length,
+      data: data.slice(0, 1), // Just show the first item to avoid overwhelming the console
+    };
+  };
+
+  // Fetch data from API with special handling for payments
+  useEffect(() => {
+    if (!resource) return;
+    
+    const endpoint = resourceToEndpoint[resource as keyof typeof resourceToEndpoint];
+    if (!endpoint) {
+      setError(`Invalid resource: ${resource}`);
+      setLoading(false);
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        console.log(`Fetching ${resource} data from: ${endpoint}, page: ${page}`);
+        
+        let response;
+        
+        // Standard fetching logic for all resources including payments
+        // First try the paginated endpoint
+        let url = `${endpoint}?page=${page}`;
+        
+        try {
+          response = await api.get(url);
+          console.log('Paginated API Response:', response);
+        } catch (err) {
+          // If paginated endpoint fails, try the basic endpoint
+          console.log('Paginated request failed, trying base endpoint');
+          response = await api.get(endpoint);
+          console.log('Base API Response:', response);
+        }
+        
+        // Handle different response structures
+        if (response.data && Array.isArray(response.data)) {
+          // Handle array response (all data at once, we'll paginate on client side)
+          console.log(`Received array data with ${response.data.length} items`);
+          
+          // Client-side pagination
+          const itemsPerPage = 10;
+          const start = (page - 1) * itemsPerPage;
+          const end = start + itemsPerPage;
+          const paginatedData = response.data.slice(start, end);
+          
+          setData(response.data);
+          setFilteredData(response.data);
+          setTotalItems(response.data.length);
+          setTotalPages(Math.ceil(response.data.length / itemsPerPage));
+        } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
+          // Handle paginated response from server
+          console.log(`Received paginated data with ${response.data.results.length} items, total: ${response.data.count}`);
+          setData(response.data.results);
+          setFilteredData(response.data.results);
+          setTotalItems(response.data.count || response.data.results.length);
+          setTotalPages(Math.ceil((response.data.count || response.data.results.length) / 10));
+        } else if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+          // Handle object response (convert to array of single item)
+          console.log('Received object data, converting to array');
+          // Check if the object is a collection of items
+          if (Object.values(response.data).some(v => Array.isArray(v))) {
+            // Find the first array property and use it
+            for (const [key, value] of Object.entries(response.data)) {
+              if (Array.isArray(value)) {
+                console.log(`Using array data from '${key}' property`);
+                
+                // Client-side pagination
+                const itemsPerPage = 10;
+                const start = (page - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                const paginatedData = (value as any[]).slice(start, end);
+                
+                setData(value as any[]);
+                setFilteredData(value as any[]);
+                setTotalItems(value.length);
+                setTotalPages(Math.ceil(value.length / itemsPerPage));
+                break;
+              }
+            }
+          } else {
+            // It's a single object, wrap in array
+            setData([response.data]);
+            setFilteredData([response.data]);
+            setTotalItems(1);
+            setTotalPages(1);
+          }
+        } else {
+          // Handle empty or unexpected response
+          console.warn('Received empty or unexpected data format', response.data);
+          setData([]);
+          setFilteredData([]);
+          setTotalItems(0);
+          setTotalPages(1);
+        }
+      } catch (err: any) {
+        console.error(`Error fetching ${resource} data:`, err);
+        
+        let errorMessage = 'Failed to fetch data';
+        
+        if (err.response) {
+          // The request was made and the server responded with a status code outside of 2xx range
+          errorMessage = `Server error: ${err.response.status} - ${err.response.data?.detail || 'Unknown error'}`;
+          console.error('Error response:', err.response);
+          
+          // Special handling for 401/403 errors (authentication/authorization)
+          if (err.response.status === 401) {
+            errorMessage = 'Authentication error: You need to log in again.';
+          } else if (err.response.status === 403) {
+            errorMessage = 'Authorization error: You do not have permission to view this data.';
+          }
+        } else if (err.request) {
+          // The request was made but no response was received
+          errorMessage = 'No response received from server. Please check your network connection.';
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          errorMessage = err.message || 'Unknown error occurred';
+        }
+        
+        setError(errorMessage);
+        setData([]);
+        setFilteredData([]);
+        setTotalItems(0);
+        setTotalPages(1);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [resource, page]);
+
+  // Handle column display
+  const getColumns = () => {
+    if (!data.length) return [];
+    
+    try {
+      // Get all possible fields from the first item
+      const allFields = Object.keys(data[0]);
+      
+      // Filter out common fields to exclude
+      const excludeFields = ['created_at', 'updated_at'];
+      
+      // For each resource, define the most important columns to display
+      switch (resource) {
+        case 'users':
+          return ['id', 'username', 'email', 'first_name', 'last_name', 'role'];
+        case 'doctors':
+          return ['id', 'user', 'specialty', 'years_of_experience', 'rating'];
+        case 'profiles':
+          // For profiles, we're using the users endpoint, so modify the columns to focus on profile-related data
+          return ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number'];
+        case 'payments':
+          // For payments, customize the columns
+          return ['id', 'user', 'amount', 'status', 'payment_method', 'transaction_id'];
+        case 'scans':
+          return ['id', 'user', 'image', 'upload_date', 'status', 'result_status'];
+        case 'appointments':
+          return ['id', 'user', 'date_time', 'status', 'notes'];
+        case 'consultations':
+          return ['id', 'patient', 'doctor', 'consultation_type', 'status'];
+        default:
+          // For other resources, take the first 5 fields excluding certain ones
+          return allFields
+            .filter(field => !excludeFields.includes(field))
+            .slice(0, 5);
+      }
+    } catch (e) {
+      console.error("Error determining columns:", e);
+      return ['id']; // Fallback to just showing ID
+    }
+  };
+
+  // Format cell value for display
+  const formatCellValue = (value: any, column: string) => {
+    if (value === null || value === undefined) return '-';
+    
+    // Handle boolean values
+    if (typeof value === 'boolean') {
+      return value ? 'Yes' : 'No';
+    }
+    
+    // Handle date-like strings
+    if (typeof value === 'string' && (value.includes('T') || value.includes('-')) && !isNaN(Date.parse(value))) {
+      try {
+        return new Date(value).toLocaleString();
+      } catch (e) {
+        return value; // Fallback to original value if date parsing fails
+      }
+    }
+    
+    // Format by column type
+    if (column === 'status') {
+      return (
+        <Badge 
+          className={
+            value === 'completed' ? 'bg-green-100 text-green-800 hover:bg-green-200 transition-colors' : 
+            value === 'pending' ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors' :
+            value === 'cancelled' ? 'bg-red-100 text-red-800 hover:bg-red-200 transition-colors' :
+            value === 'confirmed' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors' :
+            'transition-colors hover:bg-gray-100'
+          }
+        >
+          {value}
+        </Badge>
+      );
+    }
+    
+    // Handle image URLs
+    if (column === 'image' || column === 'profile_picture') {
+      if (typeof value === 'string') {
+        if (value.startsWith('http')) {
+          return (
+            <a 
+              href={value} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-cyan-600 hover:text-cyan-800 hover:underline transition-colors duration-200"
+            >
+              View Image
+            </a>
+          );
+        } else {
+          // Don't include API_BASE_URL if path already starts with /
+          const fullUrl = value.startsWith('/') 
+            ? `${window.location.origin}${value}`
+            : `${API_BASE_URL}/${value}`;
+          return (
+            <a 
+              href={fullUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-cyan-600 hover:text-cyan-800 hover:underline transition-colors duration-200"
+            >
+              View Image
+            </a>
+          );
+        }
+      }
+      return '-';
+    }
+    
+    // Handle objects (like nested resources)
+    if (typeof value === 'object') {
+      if (Array.isArray(value)) {
+        return value.length > 0 ? `[${value.length} items]` : '[]';
+      }
+      
+      // If object has an id and either name or username property, display a meaningful representation
+      if (value && typeof value === 'object' && 'id' in value) {
+        const displayName = value.name || value.username || value.first_name || 
+          (value.first_name && value.last_name ? `${value.first_name} ${value.last_name}` : `ID: ${value.id}`);
+        return displayName;
+      }
+      
+      // Default object format
+      try {
+        return JSON.stringify(value);
+      } catch (e) {
+        return '[Complex Object]';
+      }
+    }
+    
+    return String(value);
+  };
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    if (!resource) return;
+    setPage(1);
+    // The useEffect will trigger data refetch
+  };
+
+  // Handle item edit
+  const handleEdit = (item: ApiResource) => {
+    setSelectedItem(item);
+    setIsEditDialogOpen(true);
+  };
+
+  // Handle item delete
+  const handleDelete = (item: ApiResource) => {
+    setSelectedItem(item);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Perform delete operation
+  const confirmDelete = async () => {
+    if (!selectedItem || !resource) return;
+    
+    const endpoint = resourceToEndpoint[resource as keyof typeof resourceToEndpoint];
+    if (!endpoint) return;
+    
+    try {
+      setLoading(true);
+      
+      // Construct the correct URL format for the delete operation
+      const deleteUrl = `${endpoint}${selectedItem.id}/`;
+      console.log(`Attempting to delete item with ID ${selectedItem.id} from ${deleteUrl}`);
+      
+      // Attempt the delete operation
+      await api.delete(deleteUrl);
+      
+      // Update local state
+      setData(data.filter(item => item.id !== selectedItem.id));
+      setTotalItems(prev => Math.max(0, prev - 1));
+      
+      // Show success toast for delete
+      toast({
+        title: "Deleted successfully",
+        description: (
+          <div className="flex items-start gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+            <span>{`${getResourceDisplayName()} item with ID ${selectedItem.id} has been deleted.`}</span>
+          </div>
+        ),
+        variant: "default",
+        duration: 3000,
+        className: "bg-green-50 border-green-200",
+      });
+      
+      // Close the dialog
+      setIsDeleteDialogOpen(false);
+    } catch (err: any) {
+      console.error('Error deleting item:', err);
+      
+      let errorMessage = 'Failed to delete item';
+      
+      if (err.response) {
+        // Handle specific error status codes
+        if (err.response.status === 404) {
+          errorMessage = 'Item not found. It may have been deleted already.';
+        } else if (err.response.status === 403) {
+          errorMessage = 'You do not have permission to delete this item.';
+        } else if (err.response.status === 400) {
+          errorMessage = err.response.data?.detail || 'Invalid request data';
+        } else if (err.response.status === 409) {
+          errorMessage = 'Cannot delete this item because it is referenced by other items.';
+        } else {
+          errorMessage = err.response.data?.detail || err.response.data?.error || 'Server returned an error';
+        }
+      }
+      
+      toast({
+        title: "Error deleting item",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle add new item
+  const handleAdd = () => {
+    setIsAddDialogOpen(true);
+  };
+
+  // Function to reset appointment form state
+  const resetAppointmentForm = () => {
+    setAppointmentStep(0);
+    setSelectedUserId('');
+    setSelectedDate('');
+    setSelectedPaymentUserId('');
+    setSelectedPatientId('');
+    setSelectedDoctorId('');
+    setSelectedScanId('');
+  };
+
+  // Handle dialog close
+  const handleAddDialogClose = (open: boolean) => {
+    if (!open) {
+      // Reset form state when closing
+      resetAppointmentForm();
+    }
+    setIsAddDialogOpen(open);
+  };
+
+  // Handle save edited item
+  const handleSaveEdit = async (formData: FormData) => {
+    if (!selectedItem || !resource) return;
+    
+    const endpoint = resourceToEndpoint[resource as keyof typeof resourceToEndpoint];
+    if (!endpoint) return;
+    
+    try {
+      setLoading(true);
+      
+      // Special case for user profiles
+      if (resource === 'profiles') {
+        // First make sure we have a valid user
+        const userId = selectedItem.id;
+        if (!userId) {
+          toast({
+            title: "Error updating profile",
+            description: "User ID is required",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // For profiles, we need to send a request to /users/profile/ endpoint since we're
+        // actually displaying users data in the UI but want to update profile
+        try {
+          // Create payload for the profile fields
+          const profileEndpoint = `/users/profile/`;
+          const profileData: Record<string, any> = {
+            'profile[phone_number]': formData.get('phone_number'),
+            'profile[address]': formData.get('address'),
+          };
+          
+          // Handle profile picture if present
+          const profilePicture = formData.get('profile_picture');
+          if (profilePicture instanceof File && profilePicture.size > 0) {
+            profileData['profile_picture'] = profilePicture;
+          }
+          
+          // Create request config
+          const requestConfig = {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          };
+          
+          // Update the profile
+          const response = await api.put(profileEndpoint, profileData, requestConfig);
+          
+          // Show success toast for update
+          toast({
+            title: "Updated successfully",
+            description: (
+              <div className="flex items-start gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                <span>{`User profile has been updated.`}</span>
+              </div>
+            ),
+            variant: "default",
+            duration: 3000,
+            className: "bg-green-50 border-green-200",
+          });
+          
+          // Close dialog
+          setIsEditDialogOpen(false);
+          
+          // Refresh data
+          handleRefresh();
+        } catch (err: any) {
+          console.error('Error updating profile:', err);
+          
+          toast({
+            title: "Error updating profile",
+            description: err.response?.data?.error || err.message || "Unknown error occurred",
+            variant: "destructive",
+          });
+        }
+        
+        setLoading(false);
+        return;
+      }
+      
+      // Special case for payments
+      if (resource === 'payments') {
+        const paymentId = selectedItem.id;
+        if (!paymentId) {
+          toast({
+            title: "Error updating payment",
+            description: "Payment ID is required",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        try {
+          // Get amount and ensure it's a valid number
+          const amountRaw = formData.get('amount');
+          const amount = amountRaw ? parseFloat(amountRaw.toString()) : 0;
+          
+          if (isNaN(amount)) {
+            toast({
+              title: "Error updating payment",
+              description: "Amount must be a valid number",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          
+          // Create payload for the payment
+          const paymentData = {
+            amount: amount,
+            status: formData.get('status'),
+            payment_method: formData.get('payment_method'),
+            transaction_id: formData.get('transaction_id') || '',
+          };
+          
+          console.log('Updating payment with data:', paymentData);
+          
+          // Make API call
+          const response = await api.put(`/payments/${paymentId}/`, paymentData, {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          console.log('Payment update response:', response);
+          
+          // Update local data
+          setData(data.map(item => item.id === paymentId ? { ...item, ...paymentData } : item));
+          setFilteredData(filteredData.map(item => item.id === paymentId ? { ...item, ...paymentData } : item));
+          
+          // Show success toast for update
+          toast({
+            title: "Updated successfully",
+            description: `Payment has been updated.`,
+            variant: "default",
+            duration: 3000,
+            className: "bg-green-50 border-green-200",
+          });
+          
+          // Close dialog
+          setIsEditDialogOpen(false);
+        } catch (err: any) {
+          console.error('Error updating payment:', err);
+          
+          // Extract detailed error information
+          let errorMessage = 'Failed to update payment';
+          
+          if (err.response?.data) {
+            console.log('Error response data:', err.response.data);
+            
+            if (typeof err.response.data === 'string') {
+              errorMessage = err.response.data;
+            } else if (err.response.data.detail) {
+              errorMessage = err.response.data.detail;
+            } else {
+              // Check for field validation errors
+              const fieldErrors = Object.entries(err.response.data)
+                .map(([key, value]) => {
+                  if (Array.isArray(value)) {
+                    return `${key}: ${(value as string[]).join(', ')}`;
+                  } else if (typeof value === 'object' && value !== null) {
+                    return `${key}: ${JSON.stringify(value)}`;
+                  } else {
+                    return `${key}: ${String(value)}`;
+                  }
+                })
+                .join('; ');
+              
+              if (fieldErrors) {
+                errorMessage = fieldErrors;
+              }
+            }
+          }
+          
+          toast({
+            title: "Error updating payment",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+        
+        setLoading(false);
+        return;
+      }
+      
+      // Special case for consultations
+      if (resource === 'consultations') {
+        const consultationId = selectedItem.id;
+        if (!consultationId) {
+          toast({
+            title: "Error updating consultation",
+            description: "Consultation ID is required",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        try {
+          // Get required fields
+          const consultationType = formData.get('consultation_type');
+          const status = formData.get('status');
+          const scanIdRaw = formData.get('scan_id');
+          
+          if (!consultationType || !status || !scanIdRaw) {
+            toast({
+              title: "Error updating consultation",
+              description: "Please fill all required fields",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          
+          // Parse scan ID
+          const scanId = parseInt(scanIdRaw.toString(), 10);
+          if (isNaN(scanId)) {
+            toast({
+              title: "Error updating consultation",
+              description: "Scan ID must be a valid number",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          
+          // Get duration and ensure it's a valid number
+          const durationRaw = formData.get('duration');
+          const duration = durationRaw ? parseInt(durationRaw.toString(), 10) : 30;
+          
+          if (isNaN(duration)) {
+            toast({
+              title: "Error updating consultation",
+              description: "Duration must be a valid number",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          
+          // Create payload for the consultation
+          const consultationData = {
+            consultation_type: consultationType,
+            status: status,
+            scan_id: scanId,
+            duration: duration,
+            notes: formData.get('notes') || '',
+          };
+          
+          console.log('Updating consultation with data:', consultationData);
+          
+          // Make API call
+          const response = await api.put(`/consultations/${consultationId}/`, consultationData, {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          console.log('Consultation update response:', response);
+          
+          // Update local data
+          setData(data.map(item => item.id === consultationId ? { ...item, ...consultationData } : item));
+          setFilteredData(filteredData.map(item => item.id === consultationId ? { ...item, ...consultationData } : item));
+          
+          // Show success toast for update
+          toast({
+            title: "Updated successfully",
+            description: `Consultation has been updated.`,
+            variant: "default",
+            duration: 3000,
+            className: "bg-green-50 border-green-200",
+          });
+          
+          // Close dialog
+          setIsEditDialogOpen(false);
+        } catch (err: any) {
+          console.error('Error updating consultation:', err);
+          
+          // Extract detailed error information
+          let errorMessage = 'Failed to update consultation';
+          
+          if (err.response?.data) {
+            console.log('Error response data:', err.response.data);
+            
+            if (typeof err.response.data === 'string') {
+              errorMessage = err.response.data;
+            } else if (err.response.data.detail) {
+              errorMessage = err.response.data.detail;
+            } else {
+              // Check for field validation errors
+              const fieldErrors = Object.entries(err.response.data)
+                .map(([key, value]) => {
+                  if (Array.isArray(value)) {
+                    return `${key}: ${(value as string[]).join(', ')}`;
+                  } else if (typeof value === 'object' && value !== null) {
+                    return `${key}: ${JSON.stringify(value)}`;
+                  } else {
+                    return `${key}: ${String(value)}`;
+                  }
+                })
+                .join('; ');
+              
+              if (fieldErrors) {
+                errorMessage = fieldErrors;
+              }
+            }
+          }
+          
+          toast({
+            title: "Error updating consultation",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+        
+        setLoading(false);
+        return;
+      }
+      
+      // Special handling for files and complex values
+      const hasFiles = Array.from(formData.entries()).some(([_, value]) => value instanceof File && (value as File).size > 0);
+      
+      // Convert form data to object if no files are present
+      let formValues: Record<string, any> = {};
+      let requestConfig = {};
+      
+      if (!hasFiles) {
+        // Process form data into a regular object when no files
+        for (const [key, value] of formData.entries()) {
+          // Skip empty password fields
+          if ((key === 'password' || key.includes('password')) && value === '') {
+            continue;
+          }
+          
+          // Handle checkboxes - they only appear in formData if checked
+          if (typeof selectedItem[key] === 'boolean') {
+            formValues[key] = formData.has(key);
+          } else {
+            formValues[key] = value;
+          }
+        }
+        
+        // Special handling for users resource to handle password correctly
+        if (resource === 'users' && formData.get('password') === '') {
+          delete formValues.password; // Remove password if empty to prevent password reset
+        }
+        
+        // For non-file requests, use JSON
+        requestConfig = {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+      } else {
+        // For file uploads, use the FormData directly
+        // Make sure boolean fields are properly handled
+        for (const key of Object.keys(selectedItem)) {
+          if (typeof selectedItem[key] === 'boolean' && !formData.has(key)) {
+            formData.set(key, 'false');
+          }
+        }
+        
+        requestConfig = {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        };
+      }
+      
+      // Make API call
+      const response = hasFiles
+        ? await api.put(`${endpoint}${selectedItem.id}/`, formData, requestConfig)
+        : await api.put(`${endpoint}${selectedItem.id}/`, formValues, requestConfig);
+      
+      // Update local data
+      setData(data.map(item => item.id === selectedItem.id ? response.data : item));
+      setFilteredData(filteredData.map(item => item.id === selectedItem.id ? response.data : item));
+      
+      // Show success toast for update
+      toast({
+        title: "Updated successfully",
+        description: (
+          <div className="flex items-start gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+            <span>{`${getResourceDisplayName()} has been updated.`}</span>
+          </div>
+        ),
+        variant: "default",
+        duration: 3000,
+        className: "bg-green-50 border-green-200",
+      });
+      
+      // Close dialog
+      setIsEditDialogOpen(false);
+    } catch (err: any) {
+      console.error('Error updating item:', err);
+      
+      let errorMessage = 'Failed to update item';
+      
+      if (err.response) {
+        // Try to extract error details from response
+        if (err.response.data) {
+          if (typeof err.response.data === 'string') {
+            errorMessage = err.response.data;
+          } else if (err.response.data.detail) {
+            errorMessage = err.response.data.detail;
+          } else if (err.response.data.error) {
+            errorMessage = err.response.data.error;
+          } else {
+            // Check for field validation errors
+            const fieldErrors = Object.entries(err.response.data)
+              .filter(([key, value]) => Array.isArray(value))
+              .map(([key, value]) => `${key}: ${(value as string[]).join(', ')}`)
+              .join('; ');
+            
+            if (fieldErrors) {
+              errorMessage = fieldErrors;
+            }
+          }
+        }
+      }
+      
+      toast({
+        title: "Error updating item",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle save new item
+  const handleSaveNew = async (formData: FormData) => {
+    if (!resource) return;
+    
+    const endpoint = resourceToEndpoint[resource as keyof typeof resourceToEndpoint];
+    if (!endpoint) return;
+    
+    try {
+      setLoading(true);
+      
+      // Special case for user profiles
+      if (resource === 'profiles') {
+        // Get the user ID
+        const userId = formData.get('user');
+        if (!userId) {
+          toast({
+            title: "Error creating profile",
+            description: "User ID is required",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        try {
+          // Create payload for the profile fields
+          const profileData: Record<string, any> = {
+            'user': userId,
+            'phone_number': formData.get('phone_number'),
+            'address': formData.get('address'),
+          };
+          
+          // Handle profile picture if present
+          const profilePicture = formData.get('profile_picture');
+          if (profilePicture instanceof File && profilePicture.size > 0) {
+            profileData['profile_picture'] = profilePicture;
+          }
+          
+          // Create request config
+          const requestConfig = {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          };
+          
+          // Create the profile - using the actual /profiles/ endpoint
+          const response = await api.post('/profiles/', profileData, requestConfig);
+          
+          // Show success toast for create
+          toast({
+            title: "Created successfully",
+            description: (
+              <div className="flex items-start gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                <span>{`New user profile has been created.`}</span>
+              </div>
+            ),
+            variant: "default",
+            duration: 3000,
+            className: "bg-green-50 border-green-200",
+          });
+          
+          // Close dialog
+          setIsAddDialogOpen(false);
+          
+          // Refresh data
+          handleRefresh();
+        } catch (err: any) {
+          console.error('Error creating profile:', err);
+          
+          toast({
+            title: "Error creating profile",
+            description: err.response?.data?.error || err.message || "Unknown error occurred",
+            variant: "destructive",
+          });
+        }
+        
+        setLoading(false);
+        return;
+      }
+      
+      // Special case for payments
+      if (resource === 'payments') {
+        // Get the user ID from dropdown or hidden field
+        const userId = formData.get('user')?.toString() || formData.get('user_id')?.toString() || selectedPaymentUserId;
+        if (!userId) {
+          toast({
+            title: "Error creating payment",
+            description: "User ID is required",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        try {
+          // Get amount and ensure it's a valid number
+          const amountRaw = formData.get('amount');
+          const amount = amountRaw ? parseFloat(amountRaw.toString()) : 0;
+          
+          if (isNaN(amount)) {
+            toast({
+              title: "Error creating payment",
+              description: "Amount must be a valid number",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          
+          // Create payload for the payment fields
+          const paymentData = {
+            user: parseInt(userId.toString(), 10),  // Ensure user ID is a number
+            amount: amount,
+            status: formData.get('status'),
+            payment_method: formData.get('payment_method'),
+            transaction_id: formData.get('transaction_id') || '',
+            admin_created: true  // Flag to indicate admin creation
+          };
+          
+          console.log('Creating payment with data:', paymentData);
+          
+          // Create request config
+          const requestConfig = {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          };
+          
+          // Create the payment using admin-specific endpoint
+          const paymentResponse = await api.post('/payments/admin/', paymentData, requestConfig);
+          console.log('Payment creation response:', paymentResponse);
+          
+          // Show success toast for create
+          toast({
+            title: "Created successfully",
+            description: `New payment has been created.`,
+            variant: "default",
+            duration: 3000,
+            className: "bg-green-50 border-green-200",
+          });
+          
+          // Close dialog
+          setIsAddDialogOpen(false);
+          
+          // Refresh data
+          handleRefresh();
+        } catch (err: any) {
+          console.error('Error creating payment:', err);
+          
+          // Extract detailed error information
+          let errorMessage = 'Failed to create payment';
+          
+          if (err.response?.data) {
+            console.log('Error response data:', err.response.data);
+            
+            if (typeof err.response.data === 'string') {
+              errorMessage = err.response.data;
+            } else if (err.response.data.detail) {
+              errorMessage = err.response.data.detail;
+            } else {
+              // Check for field validation errors
+              const fieldErrors = Object.entries(err.response.data)
+                .map(([key, value]) => {
+                  if (Array.isArray(value)) {
+                    return `${key}: ${(value as string[]).join(', ')}`;
+                  } else if (typeof value === 'object' && value !== null) {
+                    return `${key}: ${JSON.stringify(value)}`;
+                  } else {
+                    return `${key}: ${String(value)}`;
+                  }
+                })
+                .join('; ');
+              
+              if (fieldErrors) {
+                errorMessage = fieldErrors;
+              }
+            }
+          }
+          
+          toast({
+            title: "Error creating payment",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+        
+        setLoading(false);
+        return;
+      }
+      
+      // Special case for consultations
+      if (resource === 'consultations') {
+        const patientIdRaw = formData.get('patient')?.toString() || formData.get('patient_id')?.toString() || selectedPatientId;
+        const doctorIdRaw = formData.get('doctor')?.toString() || formData.get('doctor_id')?.toString() || selectedDoctorId;
+        const consultationType = formData.get('consultation_type')?.toString();
+        const status = formData.get('status')?.toString();
+        const scanIdRaw = formData.get('scan_id')?.toString() || selectedScanId;
+        const durationRaw = formData.get('duration')?.toString();
+        const notes = formData.get('notes')?.toString();
+        
+        // Check for required fields
+        if (!patientIdRaw || !doctorIdRaw || !consultationType || !status || !scanIdRaw) {
+          toast({
+            title: "Missing required fields",
+            description: "Please fill in all required fields.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Convert to integers and validate
+        let patientId: number, doctorId: number, scanId: number, duration: number | undefined;
+        
+        try {
+          patientId = parseInt(patientIdRaw);
+          if (isNaN(patientId)) throw new Error("Invalid patient ID");
+          
+          doctorId = parseInt(doctorIdRaw);
+          if (isNaN(doctorId)) throw new Error("Invalid doctor ID");
+          
+          scanId = parseInt(scanIdRaw);
+          if (isNaN(scanId)) throw new Error("Invalid scan ID");
+          
+          if (durationRaw) {
+            duration = parseInt(durationRaw);
+            if (isNaN(duration)) throw new Error("Invalid duration");
+          }
+        } catch (error) {
+          toast({
+            title: "Invalid input",
+            description: error instanceof Error ? error.message : "Please check your inputs",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Create payload
+        const payload = {
+          patient: patientId,
+          doctor: doctorId,
+          consultation_type: consultationType,
+          status,
+          scan_id: scanId,
+          ...(duration !== undefined && { duration }),
+          ...(notes && { notes }),
+          admin_created: true  // Flag to indicate admin creation
+        };
+        
+        console.log("Creating consultation with payload:", payload);
+        
+        try {
+          const consultationResponse = await api.post(`/consultations/admin/`, payload);
+          console.log("Consultation created:", consultationResponse.data);
+          toast({
+            title: "Success",
+            description: "New consultation has been created",
+            variant: "default",
+            className: "bg-green-50 border-green-200 text-green-800",
+          });
+          
+          // Reset form and refresh data
+          setIsAddDialogOpen(false);
+          setAppointmentStep(0); // Reset to first step for next time
+          setSelectedUserId(''); // Clear selected user
+          setSelectedPaymentUserId(''); // Clear selected payment user
+          setSelectedPatientId(''); // Clear selected patient
+          setSelectedDoctorId(''); // Clear selected doctor
+          setSelectedScanId(''); // Clear selected scan
+          handleRefresh();
+        } catch (error) {
+          console.error("Error creating consultation:", error);
+          let errorMessage = "Failed to create consultation";
+          
+          if (axios.isAxiosError(error) && error.response?.data) {
+            // Extract error details from the response
+            const responseData = error.response.data;
+            errorMessage = typeof responseData === 'string' 
+              ? responseData 
+              : Object.entries(responseData)
+                  .map(([key, value]) => `${key}: ${value}`)
+                  .join(', ');
+          }
+          
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+        
+        return;
+      }
+      
+      // Special case for appointments
+      if (resource === 'appointments') {
+        const status = formData.get('status')?.toString();
+        const date = formData.get('date')?.toString();
+        const time = formData.get('time')?.toString();
+        const formUserId = formData.get('user')?.toString() || selectedUserId;
+        
+        // Check for required fields
+        if (!formUserId || !status || !date || !time) {
+          toast({
+            title: "Missing required fields",
+            description: "Please fill in all required fields.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Convert to integers and validate
+        let userId: number;
+        
+        try {
+          userId = parseInt(formUserId);
+          if (isNaN(userId)) throw new Error("Invalid user ID");
+        } catch (error) {
+          toast({
+            title: "Invalid input",
+            description: error instanceof Error ? error.message : "Please check your inputs",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Create a date_time string by combining date and time
+        // Format: "YYYY-MM-DDTHH:MM:00Z"
+        const [hour, minute] = time.split(':');
+        let formattedTime = `${hour.padStart(2, '0')}:${minute || '00'}:00`;
+        
+        // Convert 12-hour format to 24-hour if needed
+        if (time.includes('AM') || time.includes('PM')) {
+          const parts = time.match(/(\d+):?(\d+)?\s*(AM|PM)/i);
+          if (parts) {
+            let hours = parseInt(parts[1], 10);
+            const minutes = parts[2] ? parseInt(parts[2], 10) : 0;
+            const ampm = parts[3].toUpperCase();
+            
+            // Convert to 24-hour format
+            if (ampm === 'PM' && hours < 12) hours += 12;
+            if (ampm === 'AM' && hours === 12) hours = 0;
+            
+            formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+          }
+        }
+        
+        const dateTime = `${date}T${formattedTime}`;
+        
+        // Create payload (without notes)
+        const payload = {
+          user: userId,
+          date_time: dateTime,
+          status,
+          admin_created: true  // Flag to indicate admin creation
+        };
+        
+        console.log("Creating appointment with payload:", payload);
+        
+        try {
+          const appointmentResponse = await api.post(`/appointments/`, payload);
+          console.log("Appointment created:", appointmentResponse.data);
+          toast({
+            title: "Success",
+            description: "New appointment has been created",
+            variant: "default",
+            className: "bg-green-50 border-green-200 text-green-800",
+          });
+          
+          // Reset form and refresh data
+          setIsAddDialogOpen(false);
+          setAppointmentStep(0); // Reset to first step for next time
+          setSelectedUserId(''); // Clear selected user
+          handleRefresh();
+        } catch (error) {
+          console.error("Error creating appointment:", error);
+          let errorMessage = "Failed to create appointment";
+          
+          if (axios.isAxiosError(error) && error.response?.data) {
+            // Extract error details from the response
+            const responseData = error.response.data;
+            errorMessage = typeof responseData === 'string' 
+              ? responseData 
+              : Object.entries(responseData)
+                  .map(([key, value]) => `${key}: ${value}`)
+                  .join(', ');
+          }
+          
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+        
+        setLoading(false);
+        return;
+      }
+      
+      // Check if form contains file inputs
+      const hasFiles = Array.from(formData.entries()).some(([_, value]) => value instanceof File && (value as File).size > 0);
+      
+      let formValues: Record<string, any> = {};
+      let requestConfig = {};
+      
+      if (!hasFiles) {
+        // Process form data into a regular object when no files
+        for (const [key, value] of formData.entries()) {
+          formValues[key] = value;
+        }
+        
+        // For non-file requests, use JSON
+        requestConfig = {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+      } else {
+        // For file uploads, use multipart/form-data
+        requestConfig = {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        };
+      }
+      
+      // Make API call
+      const response = hasFiles
+        ? await api.post(endpoint, formData, requestConfig)
+        : await api.post(endpoint, formValues, requestConfig);
+      
+      // Update local data
+      setData([...data, response.data]);
+      setFilteredData([...filteredData, response.data]);
+      
+      // Show success toast for create
+      toast({
+        title: "Created successfully",
+        description: (
+          <div className="flex items-start gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+            <span>{`New ${getResourceDisplayName()} has been created.`}</span>
+          </div>
+        ),
+        variant: "default",
+        duration: 3000,
+        className: "bg-green-50 border-green-200",
+      });
+      
+      // Close dialog
+      setIsAddDialogOpen(false);
+    } catch (err: any) {
+      console.error('Error creating item:', err);
+      
+      let errorMessage = 'Failed to create item';
+      
+      if (err.response) {
+        // Try to extract error details from response
+        if (err.response.data) {
+          if (typeof err.response.data === 'string') {
+            errorMessage = err.response.data;
+          } else if (err.response.data.detail) {
+            errorMessage = err.response.data.detail;
+          } else if (err.response.data.error) {
+            errorMessage = err.response.data.error;
+          } else {
+            // Check for field validation errors
+            const fieldErrors = Object.entries(err.response.data)
+              .filter(([key, value]) => Array.isArray(value))
+              .map(([key, value]) => `${key}: ${(value as string[]).join(', ')}`)
+              .join('; ');
+            
+            if (fieldErrors) {
+              errorMessage = fieldErrors;
+            }
+          }
+        }
+      }
+      
+      toast({
+        title: "Error creating item",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update filtered data whenever data, search term, or filters change
+  useEffect(() => {
+    if (!data.length) {
+      setFilteredData([]);
+      return;
+    }
+    
+    let result = [...data];
+    
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(item => {
+        // Search through all string and number properties
+        return Object.entries(item).some(([key, value]) => {
+          if (typeof value === 'string' || typeof value === 'number') {
+            return String(value).toLowerCase().includes(term);
+          }
+          // Also try to search in nested objects if they have name or title properties
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            const objValue = value as Record<string, any>;
+            if (objValue.name && typeof objValue.name === 'string') {
+              return objValue.name.toLowerCase().includes(term);
+            }
+            if (objValue.title && typeof objValue.title === 'string') {
+              return objValue.title.toLowerCase().includes(term);
+            }
+            if (objValue.username && typeof objValue.username === 'string') {
+              return objValue.username.toLowerCase().includes(term);
+            }
+          }
+          return false;
+        });
+      });
+    }
+    
+    // Apply field filters
+    if (Object.keys(filters).length) {
+      Object.entries(filters).forEach(([field, value]) => {
+        if (!value) return; // Skip empty filters
+        
+        result = result.filter(item => {
+          const fieldValue = item[field];
+          
+          // Handle boolean values
+          if (typeof fieldValue === 'boolean') {
+            return String(fieldValue) === value;
+          }
+          
+          // Handle string and number values
+          if (typeof fieldValue === 'string' || typeof fieldValue === 'number') {
+            return String(fieldValue).toLowerCase().includes(value.toLowerCase());
+          }
+          
+          // Handle nested objects
+          if (fieldValue && typeof fieldValue === 'object' && !Array.isArray(fieldValue)) {
+            const objValue = fieldValue as Record<string, any>;
+            // Check for common identifier fields
+            for (const idField of ['id', 'name', 'title', 'username']) {
+              if (objValue[idField]) {
+                return String(objValue[idField]).toLowerCase().includes(value.toLowerCase());
+              }
+            }
+          }
+          
+          return false;
+        });
+      });
+    }
+    
+    // Apply sorting
+    if (sortField) {
+      result.sort((a, b) => {
+        const valueA = a[sortField];
+        const valueB = b[sortField];
+        
+        // Handle nulls and undefined
+        if (valueA === null || valueA === undefined) return sortDirection === 'asc' ? -1 : 1;
+        if (valueB === null || valueB === undefined) return sortDirection === 'asc' ? 1 : -1;
+        
+        // Handle different value types
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
+          return sortDirection === 'asc' 
+            ? valueA.localeCompare(valueB) 
+            : valueB.localeCompare(valueA);
+        }
+        
+        if (typeof valueA === 'number' && typeof valueB === 'number') {
+          return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+        }
+        
+        // Try to convert to strings as fallback
+        const strA = String(valueA);
+        const strB = String(valueB);
+        return sortDirection === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+      });
+    }
+    
+    setFilteredData(result);
+    // Update total pages based on filtered data
+    setTotalPages(Math.ceil(result.length / 10));
+  }, [data, searchTerm, filters, sortField, sortDirection]);
+  
+  // Get filter fields based on the resource
+  const getFilterFields = () => {
+    // Get the columns for the current resource
+    const columns = getColumns();
+    
+    // Define fields that are suitable for filtering
+    const filterableFields = ['status', 'role', 'is_read', 'notification_type', 'payment_method', 'specialty'];
+    
+    // Return columns that are in the filterable fields list, or common identifier fields
+    return columns.filter(column => 
+      filterableFields.includes(column) || 
+      ['name', 'title', 'type', 'category'].includes(column)
+    );
+  };
+  
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setPage(1); // Reset to first page when searching
+  };
+  
+  // Handle filter change
+  const handleFilterChange = (field: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setPage(1); // Reset to first page when filtering
+  };
+  
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilters({});
+    setSortField(null);
+    setSortDirection('asc');
+    setPage(1);
+  };
+  
+  // Handle column sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle direction if already sorting by this field
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Start with ascending sort for new field
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+  
+  // Get the current page of data to display
+  const getCurrentPageData = () => {
+    const startIndex = (page - 1) * 10;
+    const endIndex = startIndex + 10;
+    
+    return filteredData.slice(startIndex, endIndex);
+  };
+
+  // Fetch users, doctors, and scans for dropdowns
+  const fetchDropdownData = async () => {
+    // Modified to fetch user data for both consultations and payments
+    if (resource !== 'consultations' && resource !== 'payments' && resource !== 'appointments') return;
+    
+    setLoadingDropdowns(true);
+    
+    try {
+      // Fetch users
+      const usersResponse = await api.get('/users/');
+      if (usersResponse.data && Array.isArray(usersResponse.data)) {
+        setUsers(usersResponse.data);
+      } else if (usersResponse.data && usersResponse.data.results) {
+        setUsers(usersResponse.data.results);
+      }
+      
+      if (resource === 'consultations') {
+        // Fetch doctors
+        const doctorsResponse = await api.get('/doctors/');
+        if (doctorsResponse.data && Array.isArray(doctorsResponse.data)) {
+          setDoctors(doctorsResponse.data);
+        } else if (doctorsResponse.data && doctorsResponse.data.results) {
+          setDoctors(doctorsResponse.data.results);
+        }
+        
+        // Fetch scans
+        const scansResponse = await api.get('/scans/');
+        if (scansResponse.data && Array.isArray(scansResponse.data)) {
+          setScans(scansResponse.data);
+        } else if (scansResponse.data && scansResponse.data.results) {
+          setScans(scansResponse.data.results);
+        }
+      }
+      
+      // If it's an appointment resource, fetch taken slots for today
+      if (resource === 'appointments' && !selectedDate) {
+        const today = new Date().toISOString().split('T')[0];
+        setSelectedDate(today);
+        fetchTakenSlots(today);
+      }
+    } catch (error) {
+      console.error('Error fetching dropdown data:', error);
+    } finally {
+      setLoadingDropdowns(false);
+    }
+  };
+  
+  // Load dropdown data when needed
+  useEffect(() => {
+    if ((resource === 'consultations' || resource === 'payments' || resource === 'appointments') && (isAddDialogOpen || isEditDialogOpen)) {
+      fetchDropdownData();
+    }
+  }, [resource, isAddDialogOpen, isEditDialogOpen]);
+
+  // Add CSS for dialog close button hover effect
+  useEffect(() => {
+    // Add custom CSS style to head
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .dialog-close-button:hover svg {
+        color: #0891b2 !important; /* Cyan-600 color */
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Cleanup on component unmount
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  if (!isAuthenticated || user?.role !== 'admin') {
+    return null;
+  }
+
+  // Show friendly message for restricted resources
+  if (resource === 'scans' || resource === 'notifications') {
+    return (
+      <div className="container mx-auto py-10">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-xl text-red-600">Access Restricted</CardTitle>
+            <CardDescription>
+              This resource cannot be managed in the admin panel
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="bg-amber-50 p-4 rounded-md border border-amber-200 mb-4">
+              <div className="flex gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-amber-800 font-medium">Resource Unavailable</p>
+                  <p className="text-amber-700 text-sm mt-1">
+                    {resource === 'scans' ? 
+                      'Scans are AI-controlled and cannot be directly managed by administrators.' : 
+                      'Notifications are system-generated based on user actions and cannot be directly managed.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button asChild>
+              <Link to="/admin">Return to Admin Dashboard</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-8">
+      <Card>
+        <CardHeader className="border-b border-gray-100">
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>{getResourceDisplayName()} Management</CardTitle>
+              <CardDescription>
+                Manage {resource} data in the system
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleRefresh} 
+                disabled={loading}
+                title="Refresh data"
+                className="transition-all duration-200 hover:text-cyan-600 hover:border-cyan-500"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={toggleDebugMode} 
+                title={isDebugMode ? "Hide debug info" : "Show debug info"}
+                className={`transition-all duration-200 ${isDebugMode ? "bg-amber-100" : ""} hover:text-cyan-600 hover:border-cyan-500`}
+              >
+                <AlertCircle className="h-4 w-4" />
+              </Button>
+              <Button 
+                onClick={handleAdd} 
+                className="flex items-center gap-2 transition-all duration-200 hover:bg-white hover:text-cyan-600 hover:scale-105 hover:border-cyan-500 hover:border-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add New
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        
+        {isDebugMode && (
+          <div className="px-6 py-2 bg-amber-50 border-y border-amber-200">
+            <details>
+              <summary className="cursor-pointer text-amber-800 text-sm font-medium">
+                Debug Information
+              </summary>
+              <pre className="mt-2 p-2 bg-amber-100/50 rounded text-xs overflow-auto max-h-40">
+                {JSON.stringify(getDebugInfo(), null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
+        
+        <CardContent>
+          {error ? (
+            <Alert variant="destructive" className="mb-6 border-red-300 bg-red-50">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle className="text-red-800">Error</AlertTitle>
+              <AlertDescription>
+                {error}
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto ml-2 text-cyan-600 hover:text-cyan-800 transition-colors duration-200" 
+                  onClick={handleRefresh}
+                >
+                  Try again
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          
+          {/* Search and Filter Section */}
+          <div className="mb-6">
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="pl-10 focus:border-cyan-500 focus:ring focus:ring-cyan-200 transition-all duration-200"
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`transition-all duration-200 ${showFilters ? "bg-blue-50" : ""} hover:text-cyan-600 hover:border-cyan-500 hover:border-2`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                  </svg>
+                  Filters {Object.keys(filters).length > 0 && `(${Object.keys(filters).length})`}
+                </Button>
+                
+                {(searchTerm || Object.keys(filters).length > 0 || sortField) && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={clearFilters}
+                    className="hover:text-cyan-600 transition-all duration-200"
+                  >
+                    Clear All
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {showFilters && (
+              <div className="bg-gray-50 p-4 rounded-md mb-4">
+                <h3 className="text-sm font-medium mb-3">Filter by:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {getFilterFields().map(field => (
+                    <div key={field} className="space-y-1">
+                      <label htmlFor={`filter-${field}`} className="text-xs font-medium text-gray-700">
+                        {field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ')}
+                      </label>
+                      <Input
+                        id={`filter-${field}`}
+                        type="text"
+                        placeholder={`Filter by ${field}...`}
+                        value={filters[field] || ''}
+                        onChange={(e) => handleFilterChange(field, e.target.value)}
+                        className="h-8 text-sm focus:border-cyan-500 focus:ring focus:ring-cyan-200 transition-all duration-200"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Results summary */}
+            <div className="text-sm text-gray-500 mt-2">
+              {loading ? (
+                <p>Loading...</p>
+              ) : (
+                <p>
+                  Showing {getCurrentPageData().length} of {filteredData.length} 
+                  {filteredData.length !== totalItems ? 
+                   ` filtered results (${totalItems} total)` : 
+                   ` ${getResourceDisplayName().toLowerCase()}`}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : !error && filteredData.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {searchTerm || Object.keys(filters).length > 0 ? (
+                <>
+                  <p>No matching {resource} found with current filters</p>
+                  <Button 
+                    variant="link" 
+                    className="mt-2 text-cyan-600 hover:text-cyan-800 transition-colors duration-200" 
+                    onClick={clearFilters}
+                  >
+                    Clear Filters
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p>No {resource} data found in the system.</p>
+                  <Button 
+                    variant="link" 
+                    className="mt-2 text-cyan-600 hover:text-cyan-800 transition-colors duration-200" 
+                    onClick={handleRefresh}
+                  >
+                    Refresh
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : !error ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableCaption>
+                  {totalItems > 0 ? (
+                    <>Showing {getCurrentPageData().length} of {filteredData.length} {getResourceDisplayName()}</>
+                  ) : (
+                    <>List of {getResourceDisplayName()}</>
+                  )}
+                </TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    {getColumns().map(column => (
+                      <TableHead 
+                        key={column}
+                        className={`cursor-pointer hover:bg-cyan-50 transition-colors duration-200 ${sortField === column ? 'bg-cyan-50 text-cyan-700' : ''}`}
+                        onClick={() => handleSort(column)}
+                      >
+                        <div className="flex items-center">
+                          {column.charAt(0).toUpperCase() + column.slice(1).replace(/_/g, ' ')}
+                          {sortField === column && (
+                            <span className="ml-1 text-cyan-700">
+                              {sortDirection === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {getCurrentPageData().map(item => (
+                    <TableRow 
+                      key={item.id}
+                      className="transition-all duration-200 hover:bg-cyan-50 hover:shadow cursor-pointer"
+                    >
+                      {getColumns().map(column => (
+                        <TableCell key={`${item.id}-${column}`}>
+                          {formatCellValue(item[column], column)}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => handleEdit(item)}
+                            className="transition-all duration-200 hover:text-cyan-600 hover:border-cyan-500 hover:bg-cyan-50"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => handleDelete(item)}
+                            className="transition-all duration-200 hover:text-red-600 hover:border-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
+        </CardContent>
+        {filteredData.length > 10 && !error && (
+          <CardFooter>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => !loading && page > 1 ? setPage(p => p - 1) : undefined}
+                    aria-disabled={page === 1 || loading}
+                    className={`${page === 1 || loading ? "pointer-events-none opacity-50" : ""} transition-all duration-200 hover:bg-gray-100 hover:scale-105`}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink 
+                        isActive={pageNum === page}
+                        onClick={() => setPage(pageNum)}
+                        className={pageNum === page ? "bg-cyan-500 text-white hover:bg-cyan-600" : "hover:bg-gray-100"}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                
+                {totalPages > 5 && page < totalPages - 2 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => !loading && page < totalPages ? setPage(p => p + 1) : undefined}
+                    aria-disabled={page === totalPages || loading}
+                    className={`${page === totalPages || loading ? "pointer-events-none opacity-50" : ""} transition-all duration-200 hover:bg-gray-100 hover:scale-105`}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </CardFooter>
+        )}
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-800">Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this {resource} item? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              className="transition-all duration-200 hover:bg-gray-100"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+              className="transition-all duration-200 hover:bg-red-700"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto border-cyan-200">
+          <DialogHeader>
+            <DialogTitle className="text-cyan-800">Edit {getResourceDisplayName()}</DialogTitle>
+            <DialogDescription>
+              Update the {resource} information below.
+            </DialogDescription>
+          </DialogHeader>
+          <form 
+            id="edit-form" 
+            onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              handleSaveEdit(formData);
+            }}
+          >
+            <div className="grid gap-4 py-4">
+              {selectedItem && (
+                resource === 'profiles' ? (
+                  // Special form for profiles with appropriate fields
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="id" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">User ID</label>
+                      <Input 
+                        id="id" 
+                        name="id"
+                        defaultValue={selectedItem.id}
+                        disabled
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="username" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Username</label>
+                      <Input 
+                        id="username" 
+                        name="username"
+                        defaultValue={selectedItem.username || ''}
+                        disabled
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="phone_number" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Phone number</label>
+                      <Input 
+                        id="phone_number" 
+                        name="phone_number"
+                        defaultValue={selectedItem.phone_number || ''}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2 col-span-2">
+                      <label htmlFor="address" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Address</label>
+                      <textarea
+                        id="address"
+                        name="address"
+                        defaultValue={selectedItem.address || ''}
+                        className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 focus:border-cyan-500 focus:ring focus:ring-cyan-200 transition-all duration-200"
+                      ></textarea>
+                    </div>
+                    
+                    <div className="space-y-2 col-span-2">
+                      <label htmlFor="profile_picture" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Profile picture</label>
+                      <Input 
+                        id="profile_picture" 
+                        name="profile_picture"
+                        type="file"
+                        accept="image/*"
+                      />
+                      {selectedItem.profile_picture && (
+                        <div className="mt-2">
+                          <p className="text-xs text-gray-500 mb-1">Current profile picture:</p>
+                          <a 
+                            href={typeof selectedItem.profile_picture === 'string' ? selectedItem.profile_picture : '#'} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-cyan-600 hover:text-cyan-800 hover:underline transition-colors duration-200"
+                          >
+                            View current image
+                          </a>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-500">Leave empty to keep current profile picture</p>
+                    </div>
+                  </div>
+                ) : resource === 'users' ? (
+                  // Special form for editing users with appropriate fields
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="id" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">User ID</label>
+                      <Input 
+                        id="id" 
+                        name="id"
+                        defaultValue={selectedItem.id}
+                        disabled
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="username" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Username*</label>
+                      <Input 
+                        id="username" 
+                        name="username"
+                        defaultValue={selectedItem.username || ''}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Email*</label>
+                      <Input 
+                        id="email" 
+                        name="email"
+                        type="email"
+                        defaultValue={selectedItem.email || ''}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Password</label>
+                      <Input 
+                        id="password" 
+                        name="password"
+                        type="password"
+                        placeholder="Enter new password to change"
+                      />
+                      <p className="text-xs text-gray-500">Leave empty to keep current password</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="first_name" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">First Name</label>
+                      <Input 
+                        id="first_name" 
+                        name="first_name"
+                        defaultValue={selectedItem.first_name || ''}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="last_name" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Last Name</label>
+                      <Input 
+                        id="last_name" 
+                        name="last_name"
+                        defaultValue={selectedItem.last_name || ''}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="role" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Role*</label>
+                      <Select name="role" defaultValue={selectedItem.role || "patient"} required>
+                        <SelectTrigger 
+                          id="role"
+                          className="focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                        >
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent className="border-cyan-100">
+                          <SelectItem value="patient">Patient</SelectItem>
+                          <SelectItem value="doctor">Doctor</SelectItem>
+                          <SelectItem value="assistant">Assistant</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="subscription_type" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Subscription Type</label>
+                      <Select name="subscription_type" defaultValue={selectedItem.subscription_type || "free"}>
+                        <SelectTrigger id="subscription_type">
+                          <SelectValue placeholder="Select subscription" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">Free</SelectItem>
+                          <SelectItem value="premium">Premium</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="location" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Location</label>
+                      <Input 
+                        id="location" 
+                        name="location"
+                        defaultValue={selectedItem.location || ''}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2 flex items-center gap-2">
+                      <Checkbox 
+                        id="is_active" 
+                        name="is_active"
+                        defaultChecked={selectedItem.is_active !== false}
+                      />
+                      <label htmlFor="is_active" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Active</label>
+                    </div>
+                  </div>
+                ) : resource === 'payments' ? (
+                  // Special form for payments with appropriate fields
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="id" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Payment ID</label>
+                      <Input 
+                        id="id" 
+                        name="id"
+                        defaultValue={selectedItem.id}
+                        disabled
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="user" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">User*</label>
+                      {loadingDropdowns ? (
+                        <div className="flex items-center space-x-2 h-10 px-3 border rounded-md">
+                          <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                          <span className="text-sm text-gray-500">Loading users...</span>
+                        </div>
+                      ) : (
+                        selectedItem && (
+                          <Select name="user" defaultValue={selectedItem.user?.id?.toString() || selectedItem.user?.toString() || ''} required>
+                            <SelectTrigger 
+                              id="user"
+                              className="focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                            >
+                              <SelectValue placeholder="Select a user" />
+                            </SelectTrigger>
+                            <SelectContent className="border-cyan-100 max-h-[300px]">
+                              {users.map(user => (
+                                <SelectItem key={user.id} value={user.id.toString()}>
+                                  {user.first_name && user.last_name 
+                                    ? `${user.first_name} ${user.last_name}`
+                                    : user.username || `User #${user.id}`
+                                  } ({user.email || 'No email'})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )
+                      )}
+                    </div>
+                    
+                    {/* Hidden fields to store user information */}
+                    <input type="hidden" id="userName" name="userName" />
+                    <input type="hidden" id="userEmail" name="userEmail" />
+                    
+                    {/* Selected user info display */}
+                    <div className="mt-6 border border-gray-200 rounded-md p-4 bg-gray-50">
+                      <div className="text-sm text-gray-500">Selected user details will appear here</div>
+                      <div id="selectedUserDetails" className="mt-2">
+                        <div id="userInfoDisplay" className="hidden space-y-1">
+                          <div className="flex items-center">
+                            <User className="h-4 w-4 text-primary mr-2" />
+                            <span className="text-sm font-medium" id="userNameDisplay"></span>
+                          </div>
+                          <div className="flex items-center">
+                            <Mail className="h-4 w-4 text-primary mr-2" />
+                            <span className="text-sm" id="userEmailDisplay"></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Navigation buttons */}
+                    <div className="flex justify-end mt-6">
+                      <Button 
+                        type="button"
+                        className="bg-primary hover:bg-primary-hover"
+                        onClick={() => {
+                          // Validate user selection
+                          if (!selectedUserId) {
+                            toast({
+                              title: "Error",
+                              description: "Please select a user",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          
+                          // Go to next step
+                          setAppointmentStep(1);
+                        }}
+                      >
+                        Next <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  // Step 2: Date and Time selection
+                  <div className="space-y-4">
+                    {/* Hidden field to store selected user ID */}
+                    <input type="hidden" name="user" value={selectedUserId} />
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="status" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Status*</label>
+                      <Select name="status" defaultValue="pending" required>
+                        <SelectTrigger 
+                          id="status"
+                          className="focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                        >
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent className="border-cyan-100">
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="date" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Date*</label>
+                      <div className="relative">
+                        <Input 
+                          id="date" 
+                          name="date"
+                          type="date"
+                          min={new Date().toISOString().split('T')[0]}
+                          required
+                          value={selectedDate}
+                          onChange={handleDateSelection}
+                          className="focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="time" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Time Slot*</label>
+                        <div className="flex items-center text-xs text-gray-500">
+                          <Clock className="h-3 w-3 mr-1 text-primary" />
+                          <span>Pick an available time</span>
+                        </div>
+                      </div>
+                      <input type="hidden" name="time" id="time_input" required />
+                      <div className="grid grid-cols-3 gap-3 p-4">
+                        {loadingDropdowns ? (
+                          <div className="col-span-3 flex justify-center p-4">
+                            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                          </div>
+                        ) : (
+                          TIME_SLOTS.map((time, index) => {
+                            const isAvailable = isSlotAvailable(time);
+                            return (
+                              <div
+                                key={index}
+                                onClick={() => {
+                                  if (!isAvailable) return;
+                                  const input = document.getElementById('time_input') as HTMLInputElement;
+                                  if (input) input.value = time;
+                                  
+                                  // Update visual selection
+                                  const timeCards = document.querySelectorAll('.time-slot-card');
+                                  timeCards.forEach(card => card.classList.remove('ring-2', 'ring-primary', 'text-primary', 'bg-cyan-50'));
+                                  const currentCard = document.getElementById(`time-slot-${index}`);
+                                  if (currentCard) {
+                                    currentCard.classList.add('ring-2', 'ring-primary', 'text-primary', 'bg-cyan-50');
+                                  }
+                                }}
+                                id={`time-slot-${index}`}
+                                className={`time-slot-card relative py-2 px-4 border border-cyan-500 rounded-full transition-all ${
+                                  isAvailable 
+                                    ? 'bg-white hover:bg-cyan-50/50 cursor-pointer'
+                                    : 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-70'
+                                }`}
+                              >
+                                <div className="text-center font-medium">
+                                  {time}
+                                  {!isAvailable && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100/90 rounded-lg">
+                                      <div className="flex items-center gap-1 text-cyan-500">
+                                        <Lock className="h-4 w-4" />
+                                        <span className="text-sm">Taken</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Navigation buttons */}
+                    <div className="flex justify-between mt-6">
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={() => setAppointmentStep(0)}
+                        className="border-gray-200"
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              {/* Only show Add Item button when not on first step of appointment or for other resources */}
+              {!(resource === 'appointments' && appointmentStep === 0) && (
+                <Button 
+                  type="submit"
+                  className="bg-cyan-500 text-white hover:bg-white hover:text-cyan-500 hover:border hover:border-cyan-500 transition-all duration-200"
+                >
+                  Add Item
+                </Button>
+              )}
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ManagementPage; 

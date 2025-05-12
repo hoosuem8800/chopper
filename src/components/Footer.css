@@ -1,0 +1,178 @@
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+    background-image: linear-gradient(90deg, #0891b2, #06b6d4, #22d3ee, #0891b2);
+  }
+  20% {
+    background-image: linear-gradient(90deg, #06b6d4, #0ea5e9, #22d3ee, #0891b2);
+  }
+  40% {
+    background-position: 100% 50%;
+    background-image: linear-gradient(90deg, #0284c7, #38bdf8, #0ea5e9, #0891b2);
+  }
+  60% {
+    background-image: linear-gradient(90deg, #0ea5e9, #0284c7, #06b6d4, #22d3ee);
+  }
+  80% {
+    background-image: linear-gradient(90deg, #22d3ee, #0ea5e9, #0284c7, #06b6d4);
+  }
+  100% {
+    background-position: 0% 50%;
+    background-image: linear-gradient(90deg, #0891b2, #06b6d4, #22d3ee, #0891b2);
+  }
+}
+
+/* Animated border styles */
+.animated-border {
+  position: relative;
+  border-bottom: none !important; /* Remove default border */
+}
+
+.animated-border::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background-size: 300% 300%;
+  background-image: linear-gradient(90deg, #0891b2, #0ea5e9, #2563eb, #06b6d4, #0891b2);
+  animation: gradientFlow 6s ease infinite;
+  transition: all 0.3s ease;
+}
+
+.animated-border:hover::after {
+  height: 3px;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.7);
+}
+
+/* Keep the text styles for reference but don't use them 
+.animated-text {
+  background-size: 200% 200%;
+  background-image: linear-gradient(90deg, #0891b2, #3b82f6, #0891b2);
+  animation: gradientFlow 8s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  transition: all 0.3s ease;
+}
+
+.animated-text:hover {
+  text-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
+}
+*/ 
+
+/* Contact section item styling */
+.animated-icon-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.animated-icon-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(6, 182, 212, 0.2);
+  border-radius: 50%;
+  transform: scale(0);
+  transition: transform 0.3s ease;
+}
+
+.group:hover .animated-icon-container::before {
+  transform: scale(2);
+}
+
+/* Enhance list items on hover */
+.contact-item-hover:hover {
+  transform: translateX(5px);
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.05), rgba(59, 130, 246, 0.05));
+}
+
+/* Social media icon styling */
+.social-icon-link {
+  display: inline-block;
+  position: relative;
+}
+
+.social-icon-container {
+  height: 40px;
+  width: 40px;
+  border-radius: 50%;
+  background: rgb(6, 182, 212); /* Solid cyan color instead of gradient */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(8, 144, 178, 0), 0 2px 4px -2px rgba(8, 145, 178, 0.1);
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.social-icon {
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.social-icon-link:hover .social-icon-container {
+  transform: translateY(-5px);
+  background: white;
+  color: #06b6d4; /* Brighter cyan on hover */
+  box-shadow: 0 10px 15px -3px rgba(6, 182, 212, 0.3), 0 4px 6px -4px rgba(6, 182, 212, 0.2);
+}
+
+.social-icon-link:active .social-icon-container {
+  transform: translateY(0);
+  box-shadow: 0 4px 6px -1px rgba(8, 145, 178, 0.2), 0 2px 4px -2px rgba(8, 145, 178, 0.1);
+}
+
+/* Adds a pulse effect to each icon, staggered by delay */
+.social-icon-link:nth-child(1) .social-icon { animation: iconPulse 2s infinite 0s; }
+.social-icon-link:nth-child(2) .social-icon { animation: iconPulse 2s infinite 0.5s; }
+.social-icon-link:nth-child(3) .social-icon { animation: iconPulse 2s infinite 1s; }
+.social-icon-link:nth-child(4) .social-icon { animation: iconPulse 2s infinite 1.5s; }
+
+@keyframes iconPulse {
+  0% { transform: scale(1); }
+  10% { transform: scale(1.1); }
+  20% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+
+/* Enhanced map pin icon styling */
+.map-pin-icon {
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.4));
+  animation: mapPinBounce 2s ease-in-out infinite;
+}
+
+@keyframes mapPinBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Clean up unused classes */
+.location-pin-icon,
+.location-outer-circle,
+.location-inner-circle,
+.location-line,
+.map-pin-pulse {
+  display: none;
+}
+
+@keyframes circleExpand {
+  0% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes pinPulse {
+  0% { opacity: 0; }
+  100% { opacity: 0; }
+} 
