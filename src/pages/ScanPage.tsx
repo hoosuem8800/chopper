@@ -855,81 +855,145 @@ const ScanPage = () => {
           throw new Error('X-ray result has no image');
         }
         
-        // Convert image URL to File for analysis
+        // Try to load the image securely
+        const imageUrl = xrayResult.image;
+        console.log("Attempting to fetch image from:", imageUrl);
+        
+        // Ensure the URL uses HTTPS
+        let secureImageUrl = imageUrl;
+        if (imageUrl.startsWith('http://')) {
+          secureImageUrl = imageUrl.replace('http://', 'https://');
+          console.log("Converted to HTTPS URL:", secureImageUrl);
+        }
+        
         try {
-          const response = await fetch(xrayResult.image);
+          // First try direct fetch with secure URL
+          const response = await fetch(secureImageUrl);
+          
           if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to fetch image directly: ${response.status}`);
           }
           
           const blob = await response.blob();
           const file = new File([blob], `xray-${numericId}.jpg`, { type: blob.type || 'image/jpeg' });
           
-          // Submit for analysis, staying on the quickscan tab
+          // Submit for analysis
           await handleAnalyzeScan(file, 'quickscan');
+        } catch (fetchError) {
+          console.error("Direct fetch failed, trying proxy:", fetchError);
           
-          // Scroll to the results section
-          setTimeout(() => {
-            const resultElement = document.getElementById('prediction-result-quickscan');
-            if (resultElement) {
-              resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // If direct fetch fails, try using backend proxy
+          const token = localStorage.getItem('token');
+          if (!token) {
+            throw new Error("Authentication required");
+          }
+          
+          const encodedUrl = encodeURIComponent(imageUrl);
+          const proxyUrl = `${import.meta.env.DEV ? 'http://localhost:8000' : 'https://backends-production-d57e.up.railway.app'}/api/proxy-image/?url=${encodedUrl}`;
+          
+          console.log("Attempting proxy fetch from:", proxyUrl);
+          const proxyResponse = await fetch(proxyUrl, {
+            headers: {
+              'Authorization': `Token ${token}`
             }
-          }, 500);
+          });
           
-          return;
-        } catch (fileError) {
-          console.error("Error converting image to file:", fileError);
-          throw fileError;
+          if (!proxyResponse.ok) {
+            throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+          }
+          
+          const proxyBlob = await proxyResponse.blob();
+          const proxyFile = new File([proxyBlob], `xray-${numericId}.jpg`, { type: proxyBlob.type || 'image/jpeg' });
+          
+          // Submit for analysis
+          await handleAnalyzeScan(proxyFile, 'quickscan');
         }
-      } catch (error) {
-        console.log("Error fetching X-ray by ID, will try appointment results instead:", error);
         
-        // If direct X-ray fetch failed, check if it's an appointment ID
-        const appointment = await appointmentService.getAppointment(numericId);
-        if (appointment && appointment.xray_result && appointment.xray_result.image) {
-          console.log("Found appointment with X-ray:", appointment);
-          
-          // Check if user has permission to access this appointment
-          if (user) {
-            const hasPermission = 
-              user.role === 'admin' || 
-              user.role === 'doctor' || 
-              (user.role === 'patient' && appointment.patient_id === user.id) || 
-              (user.role === 'assistant' && appointment.assistant_id === user.id);
-            
-            console.log(`Permission check for Appointment ${numericId}:`, {
-              userRole: user.role,
-              userId: user.id,
-              appointmentPatientId: appointment.patient_id,
-              appointmentAssistantId: appointment.assistant_id,
-              hasPermission
-            });
-            
-            if (!hasPermission) {
-              throw new Error('You do not have permission to view this appointment');
-            }
+        // Scroll to the results section
+        setTimeout(() => {
+          const resultElement = document.getElementById('prediction-result-quickscan');
+          if (resultElement) {
+            resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 500);
+        
+        return;
+      } catch (error) {
+        console.error("Error fetching X-ray by ID, will try appointment results instead:", error);
+        
+        // If X-ray fetching failed, try to get from appointment if we have an ID
+        if (typeof xrayId === 'string' && xrayId.startsWith('appointment-')) {
+          const appointmentId = xrayId.replace('appointment-', '');
+          if (!appointmentId) {
+            throw new Error('Invalid appointment ID format');
           }
           
-          // Convert image URL to File for analysis
+          console.log(`Fetching details for appointment #${appointmentId}`);
+          
           try {
-            const imageUrl = appointment.xray_result.image;
-            const response = await fetch(imageUrl);
-            if (!response.ok) {
-              throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            const appointment = await appointmentService.getAppointment(Number(appointmentId));
+            if (appointment && appointment.xray_result && appointment.xray_result.image) {
+              console.log("Found appointment with X-ray:", appointment);
+              
+              // Try to load the image
+              const imageUrl = appointment.xray_result.image;
+              
+              // Ensure the URL uses HTTPS
+              let secureImageUrl = imageUrl;
+              if (imageUrl.startsWith('http://')) {
+                secureImageUrl = imageUrl.replace('http://', 'https://');
+              }
+              
+              try {
+                // First try direct fetch with secure URL
+                const response = await fetch(secureImageUrl);
+                
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch image: ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                const file = new File([blob], `xray-appointment-${appointmentId}.jpg`, { type: blob.type || 'image/jpeg' });
+                
+                // Submit for analysis
+                await handleAnalyzeScan(file);
+              } catch (fetchError) {
+                console.error("Direct fetch failed for appointment image, trying proxy:", fetchError);
+                
+                // If direct fetch fails, try using backend proxy
+                const token = localStorage.getItem('token');
+                if (!token) {
+                  throw new Error("Authentication required");
+                }
+                
+                const encodedUrl = encodeURIComponent(imageUrl);
+                const proxyUrl = `${import.meta.env.DEV ? 'http://localhost:8000' : 'https://backends-production-d57e.up.railway.app'}/api/proxy-image/?url=${encodedUrl}`;
+                
+                const proxyResponse = await fetch(proxyUrl, {
+                  headers: {
+                    'Authorization': `Token ${token}`
+                  }
+                });
+                
+                if (!proxyResponse.ok) {
+                  throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+                }
+                
+                const proxyBlob = await proxyResponse.blob();
+                const proxyFile = new File([proxyBlob], `xray-appointment-${appointmentId}.jpg`, { type: proxyBlob.type || 'image/jpeg' });
+                
+                // Submit for analysis
+                await handleAnalyzeScan(proxyFile);
+              }
+              
+              return;
+            } else {
+              throw new Error('No X-ray found in appointment');
             }
-            
-            const blob = await response.blob();
-            const file = new File([blob], `xray-appointment-${appointment.id}.jpg`, { type: blob.type || 'image/jpeg' });
-            
-            // Submit for analysis
-            await handleAnalyzeScan(file);
-            return;
-          } catch (fileError) {
-            console.error("Error converting appointment image to file:", fileError);
-            throw fileError;
+          } catch (appointmentError) {
+            console.error(`Error fetching appointment #${appointmentId}:`, appointmentError);
+            throw new Error(`Could not retrieve appointment data: ${appointmentError.message}`);
           }
-        } else {
-          throw new Error('No X-ray found in appointment');
         }
       }
     } catch (error) {

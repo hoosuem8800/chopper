@@ -3,20 +3,16 @@ import axios from 'axios';
 // Set to true to use mock data when backend is not available
 export const USE_MOCK_DATA = false;
 
-// Define API base URL dynamically based on environment
-const getApiBaseUrl = () => {
-  // For production environment
-  if (import.meta.env.PROD) {
-    return 'https://backends-production-d57e.up.railway.app/api';
-  }
-  
-  // For local development
-  const BACKEND_PORT = '8000'; // Django backend port
-  return `http://localhost:${BACKEND_PORT}/api`;
-};
+// Get the current frontend port from the window location
+const FRONTEND_PORT = window.location.port;
 
-// Define API base URL
-const API_BASE_URL = getApiBaseUrl();
+// Define constants for API URLs
+const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || 8000;
+const PRODUCTION_API_URL = 'https://backends-production-d57e.up.railway.app/api';
+const LOCAL_API_URL = `http://localhost:${BACKEND_PORT}/api`;
+
+// Use production URL if we're not in development mode
+const API_BASE_URL = import.meta.env.DEV ? LOCAL_API_URL : PRODUCTION_API_URL;
 
 // Export API base URL
 export { API_BASE_URL };
@@ -2211,6 +2207,12 @@ function formatImageUrl(imageUrl: string): string {
   
   console.log('Formatting image URL:', imageUrl);
   
+  // Convert HTTP to HTTPS for all URLs
+  if (imageUrl.startsWith('http://')) {
+    imageUrl = imageUrl.replace('http://', 'https://');
+    console.log('Converted to HTTPS URL:', imageUrl);
+  }
+  
   // If it's already a full URL, return it as is
   if (imageUrl.startsWith('http')) {
     console.log('URL is already absolute:', imageUrl);
@@ -2228,6 +2230,12 @@ function formatImageUrl(imageUrl: string): string {
   } else {
     // Otherwise, add media/ prefix
     formattedUrl = `${API_BASE_URL}/media/${imageUrl}`;
+  }
+  
+  // Ensure the final URL uses HTTPS
+  if (formattedUrl.startsWith('http://')) {
+    formattedUrl = formattedUrl.replace('http://', 'https://');
+    console.log('Converted formatted URL to HTTPS:', formattedUrl);
   }
   
   console.log('Formatted image URL:', formattedUrl);
