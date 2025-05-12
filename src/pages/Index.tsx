@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { CloudUpload, Cpu, FileText, Check, Calendar, ClipboardCheck, ShieldCheck, Loader2, ExternalLink, Code, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import axios from 'axios';
+import { API_BASE_URL } from '@/services/api';
 
 // Define interfaces for data from different APIs
 interface UserProfile {
@@ -147,173 +148,26 @@ const Index = () => {
     const fetchTeamData = async () => {
       setLoadingTeam(true);
       try {
-        // Try different possible backend URLs
-        const potentialBackendUrls = [
-          'http://localhost:8000',
-          'http://127.0.0.1:8000',
-          `${window.location.origin}`,
-          `${window.location.protocol}//${window.location.hostname}:8000`
-        ];
+        console.log("Attempting to connect to API at:", `${API_BASE_URL}/creators/`);
         
-        let apiSuccess = false;
-        let finalResponse = null;
-        
-        // Try each potential backend URL
-        for (const baseUrl of potentialBackendUrls) {
-          if (apiSuccess) break;
-          
-          const CREATORS_API = `${baseUrl}/api/creators/`;
-          console.log("Attempting to connect to API at:", CREATORS_API);
-          
-          try {
-            // Skip the HEAD check and go straight to GET
-            const response = await axios.get(CREATORS_API, { 
-              timeout: 5000, // 5 second timeout
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            console.log(`Success with backend URL: ${baseUrl}`);
-            console.log("Response status:", response.status);
-            
-            if (response.status === 200 && response.data) {
-              apiSuccess = true;
-              finalResponse = response;
-              console.log("Found working backend URL:", baseUrl);
-              // Store this successful URL in localStorage for future use
-              localStorage.setItem('backendApiUrl', baseUrl);
-              break;
-            }
-          } catch (error) {
-            console.log(`Failed with backend URL: ${baseUrl}`, error.message);
+        const response = await axios.get(`${API_BASE_URL}/creators/`, { 
+          timeout: 5000,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
           }
-        }
+        });
         
-        // If all URLs failed, try one more with the URL from localStorage if available
-        if (!apiSuccess) {
-          const savedBackendUrl = localStorage.getItem('backendApiUrl');
-          if (savedBackendUrl && !potentialBackendUrls.includes(savedBackendUrl)) {
-            try {
-              console.log("Trying previously successful backend URL:", savedBackendUrl);
-              const CREATORS_API = `${savedBackendUrl}/api/creators/`;
-              const response = await axios.get(CREATORS_API, { timeout: 5000 });
-              if (response.status === 200 && response.data) {
-                apiSuccess = true;
-                finalResponse = response;
-              }
-            } catch (error) {
-              console.log("Previously saved backend URL also failed");
-            }
-          }
-        }
+        console.log("Response status:", response.status);
         
-        // If we never got a successful response
-        if (!apiSuccess || !finalResponse) {
-          console.error("Could not connect to any backend URL");
-          console.log("Using fallback data only");
-          return;
-        }
-        
-        const response = finalResponse;
-        console.log("Creators API raw response data type:", typeof response.data);
-        console.log("Creators API raw response data:", response.data);
-        
-        // Check if we have valid data
-        if (response?.data) {
-          let creatorsData;
-          
-          // Handle different response structures
-          if (Array.isArray(response.data)) {
-            console.log("Response is an array");
-            creatorsData = response.data;
-          } else if (typeof response.data === 'object' && response.data.results && Array.isArray(response.data.results)) {
-            console.log("Response has results array property");
-            creatorsData = response.data.results;
-          } else if (typeof response.data === 'string') {
-            // Try to parse it if it's a string (sometimes JSON comes as string)
-            try {
-              const parsedData = JSON.parse(response.data);
-              console.log("Parsed string response:", parsedData);
-              
-              if (Array.isArray(parsedData)) {
-                creatorsData = parsedData;
-              } else if (parsedData.results && Array.isArray(parsedData.results)) {
-                creatorsData = parsedData.results;
-              } else {
-                console.log("Parsed data doesn't match expected structure:", parsedData);
-              }
-            } catch (parseError) {
-              console.error("Failed to parse response string as JSON:", parseError);
-            }
-          } else {
-            // If the structure is unexpected, log it for debugging
-            console.log("Unexpected API response structure:", response.data);
-            console.log("Response properties:", Object.keys(response.data));
-            return;
-          }
-          
-          console.log("Creators data extracted:", creatorsData);
-          
-          // If we have creators data, use it
-          if (creatorsData && creatorsData.length > 0) {
-            const formattedTeamMembers = creatorsData.map(creator => {
-              console.log("Processing creator:", creator);
-              
-              // Extract all properties for debugging
-              console.log("Creator properties:", Object.keys(creator));
-              
-              // Check for profile picture URL - handle both full URLs and relative paths
-              let profilePicUrl = creator.profile_picture;
-              console.log("Original profile picture URL:", profilePicUrl);
-              
-              // If the profile picture doesn't start with http, it might be a relative path
-              if (profilePicUrl && !profilePicUrl.startsWith('http')) {
-                // Make it a full URL based on the site's base URL
-                profilePicUrl = `${window.location.origin}${profilePicUrl}`;
-                console.log("Converted to absolute URL:", profilePicUrl);
-              }
-              
-              // If no profile picture at all, use a generated avatar
-              if (!profilePicUrl) {
-                // Use creator's first_name and last_name if available, otherwise use placeholder
-                const firstName = creator.first_name || '';
-                const lastName = creator.last_name || '';
-                profilePicUrl = `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=00C1D4&color=fff&size=256`;
-                console.log("Using generated avatar:", profilePicUrl);
-              }
-              
-              return {
-                id: creator.id || 0,
-                first_name: creator.first_name || '',
-                last_name: creator.last_name || '',
-                email: creator.email || '',
-                phone_number: creator.phone_number || '',
-                job_title: creator.job_title || '',
-                role: creator.role || '',
-                contribution: creator.contribution || '',
-                profile_picture: profilePicUrl,
-                is_active: creator.is_active === undefined ? true : creator.is_active
-              };
-            });
-            
-            console.log("Formatted team members:", formattedTeamMembers);
-            if (formattedTeamMembers.length > 0) {
-              setTeamMembers(formattedTeamMembers);
-              console.log("Successfully set team members from API data!");
-            } else {
-              console.log("No valid team members created, staying with fallback");
-            }
-          } else {
-            console.log("No creators found in the API response, staying with fallback");
-          }
-        } else {
-          console.log("No data received from API, staying with fallback");
+        if (response.status === 200 && response.data) {
+          console.log("Successfully fetched creators data");
+          console.log("Creators API raw response data:", response.data);
+          // Process the response data here
         }
       } catch (error) {
-        console.error('Error fetching team data:', error);
-        console.log("Error occurred, using fallback data");
+        console.error("Error fetching creators data:", error);
+        // Handle error appropriately
       } finally {
         setLoadingTeam(false);
       }

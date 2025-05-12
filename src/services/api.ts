@@ -11,8 +11,8 @@ const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || 8000;
 const PRODUCTION_API_URL = 'https://backends-production-d57e.up.railway.app/api';
 const LOCAL_API_URL = `http://localhost:${BACKEND_PORT}/api`;
 
-// Use production URL if we're not in development mode
-const API_BASE_URL = import.meta.env.DEV ? LOCAL_API_URL : PRODUCTION_API_URL;
+// Always use production URL in production environment
+const API_BASE_URL = import.meta.env.PROD ? PRODUCTION_API_URL : LOCAL_API_URL;
 
 // Export API base URL
 export { API_BASE_URL };
