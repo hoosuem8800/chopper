@@ -149,12 +149,10 @@ const Index = () => {
       try {
         // Try different possible backend URLs
         const potentialBackendUrls = [
-          '/api', // Relative path for Vercel deployment with proxying
-          'https://backends-production-d57e.up.railway.app/api', // Direct Railway backend URL
-          'http://localhost:8000/api',
-          'http://127.0.0.1:8000/api',
-          `${window.location.origin}/api`,
-          `${window.location.protocol}//${window.location.hostname}:8000/api`
+          'http://localhost:8000',
+          'http://127.0.0.1:8000',
+          `${window.location.origin}`,
+          `${window.location.protocol}//${window.location.hostname}:8000`
         ];
         
         let apiSuccess = false;
@@ -164,7 +162,7 @@ const Index = () => {
         for (const baseUrl of potentialBackendUrls) {
           if (apiSuccess) break;
           
-          const CREATORS_API = `${baseUrl}/creators/`;
+          const CREATORS_API = `${baseUrl}/api/creators/`;
           console.log("Attempting to connect to API at:", CREATORS_API);
           
           try {
@@ -180,7 +178,7 @@ const Index = () => {
             console.log(`Success with backend URL: ${baseUrl}`);
             console.log("Response status:", response.status);
             
-            if (response.status === 200) {
+            if (response.status === 200 && response.data) {
               apiSuccess = true;
               finalResponse = response;
               console.log("Found working backend URL:", baseUrl);
@@ -199,9 +197,9 @@ const Index = () => {
           if (savedBackendUrl && !potentialBackendUrls.includes(savedBackendUrl)) {
             try {
               console.log("Trying previously successful backend URL:", savedBackendUrl);
-              const CREATORS_API = `${savedBackendUrl}/creators/`;
+              const CREATORS_API = `${savedBackendUrl}/api/creators/`;
               const response = await axios.get(CREATORS_API, { timeout: 5000 });
-              if (response.status === 200) {
+              if (response.status === 200 && response.data) {
                 apiSuccess = true;
                 finalResponse = response;
               }
@@ -215,7 +213,6 @@ const Index = () => {
         if (!apiSuccess || !finalResponse) {
           console.error("Could not connect to any backend URL");
           console.log("Using fallback data only");
-          setTeamMembers(fallbackTeamData);
           return;
         }
         
@@ -246,22 +243,14 @@ const Index = () => {
                 creatorsData = parsedData.results;
               } else {
                 console.log("Parsed data doesn't match expected structure:", parsedData);
-                // Use fallback
-                setTeamMembers(fallbackTeamData);
-                return;
               }
             } catch (parseError) {
               console.error("Failed to parse response string as JSON:", parseError);
-              // Use fallback after parse error
-              setTeamMembers(fallbackTeamData);
-              return;
             }
           } else {
             // If the structure is unexpected, log it for debugging
             console.log("Unexpected API response structure:", response.data);
             console.log("Response properties:", Object.keys(response.data));
-            // Use fallback on unexpected structure
-            setTeamMembers(fallbackTeamData);
             return;
           }
           
@@ -314,21 +303,17 @@ const Index = () => {
               setTeamMembers(formattedTeamMembers);
               console.log("Successfully set team members from API data!");
             } else {
-              console.log("No valid team members created, using fallback");
-              setTeamMembers(fallbackTeamData);
+              console.log("No valid team members created, staying with fallback");
             }
           } else {
-            console.log("No creators found in the API response, using fallback");
-            setTeamMembers(fallbackTeamData);
+            console.log("No creators found in the API response, staying with fallback");
           }
         } else {
-          console.log("No data received from API, using fallback");
-          setTeamMembers(fallbackTeamData);
+          console.log("No data received from API, staying with fallback");
         }
       } catch (error) {
         console.error('Error fetching team data:', error);
         console.log("Error occurred, using fallback data");
-        setTeamMembers(fallbackTeamData);
       } finally {
         setLoadingTeam(false);
       }

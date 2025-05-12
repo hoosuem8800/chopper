@@ -10,20 +10,9 @@ const FRONTEND_PORT = window.location.port;
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || 8000;
 const PRODUCTION_API_URL = 'https://backends-production-d57e.up.railway.app/api';
 const LOCAL_API_URL = `http://localhost:${BACKEND_PORT}/api`;
-const RELATIVE_API_URL = '/api'; // New: Use relative URL for production on Vercel
 
-// Determine API base URL based on environment and availability
-let API_BASE_URL;
-
-// In production, try using relative paths first (for Vercel deployments)
-if (!import.meta.env.DEV) {
-  API_BASE_URL = RELATIVE_API_URL;
-} else {
-  // In development, use localhost
-  API_BASE_URL = LOCAL_API_URL;
-}
-
-console.log('Using API base URL:', API_BASE_URL);
+// Use production URL if we're not in development mode
+const API_BASE_URL = import.meta.env.DEV ? LOCAL_API_URL : PRODUCTION_API_URL;
 
 // Export API base URL
 export { API_BASE_URL };
@@ -142,10 +131,10 @@ export const formatProfilePictureUrl = (profilePicture: string | null | undefine
     return profilePicture;
   }
   
-  // Get the backend URL - use PRODUCTION_API_URL without the /api suffix for media files
-  const backendUrl = import.meta.env.DEV
-    ? `http://${window.location.hostname}:8000`
-    : PRODUCTION_API_URL.replace('/api', '');
+  // Get the backend URL - use the same logic as our API_BASE_URL
+  const backendUrl = import.meta.env.PROD
+    ? 'https://backends-production-d57e.up.railway.app'
+    : `http://${window.location.hostname}:8000`;
   
   // Remove any duplicate paths to prevent errors
   let cleanPath = profilePicture;
@@ -200,20 +189,10 @@ api.interceptors.request.use((config) => {
                 sessionStorage.getItem('accessToken');
   
   if (token) {
-    // Detect token type: JWT tokens start with 'ey', other tokens may use different prefixes
-    let prefix = 'Bearer';
-    
-    // Check token format
-    if (token.startsWith('ey')) {
-      prefix = 'Bearer'; // JWT token
-    } else if (token.match(/^[0-9a-f]{40}$/i)) {
-      prefix = 'Token'; // Django token auth
-    } else if (token.includes('.') && token.split('.').length === 3) {
-      prefix = 'Bearer'; // Appears to be JWT but doesn't start with 'ey'
-    }
-    
+    // Detect token type: JWT tokens start with 'ey'
+    const prefix = token.startsWith('ey') ? 'Bearer' : 'Token';
     config.headers.Authorization = `${prefix} ${token}`;
-    console.log(`Adding authentication token with ${prefix} prefix to request`);
+    console.log(`Found authentication token, adding to request with ${prefix} prefix`);
   } else {
     console.warn('No authentication token found');
   }
@@ -221,18 +200,7 @@ api.interceptors.request.use((config) => {
   // Add standard CORS headers to all requests
   config.headers['X-Requested-With'] = 'XMLHttpRequest';
   
-  // Log detailed request info in development
-  console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-    baseURL: config.baseURL,
-    headers: config.headers,
-    data: config.data
-  });
-  
   return config;
-},
-(error) => {
-  console.error('Request interceptor error:', error);
-  return Promise.reject(error);
 });
 
 // Add response interceptor to handle token expiration
@@ -306,59 +274,21 @@ export const authService = {
       };
     }
     
-    try {
-      console.log('Attempting login with backend URL:', API_BASE_URL);
-      
-      // First try using the relative path (for Vercel deployments with proxy)
-      const response = await api.post('/auth/token/', { username: email, password });
-      console.log('Login response:', response);
-      
-      const { access, refresh } = response.data;
-      
-      // Store both tokens
-      localStorage.setItem('token', access);
-      localStorage.setItem('refreshToken', refresh);
-      
-      // Set the Authorization header for future requests
-      api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-      
-      return {
-        token: access,
-        refreshToken: refresh,
-        success: true
-      };
-    } catch (error) {
-      console.error('Login error with relative URL, trying direct backend URL', error);
-      
-      try {
-        // Try the direct Railway backend URL as fallback
-        const directResponse = await axios.post(
-          `${PRODUCTION_API_URL}/auth/token/`, 
-          { username: email, password },
-          { headers: { 'Content-Type': 'application/json' }}
-        );
-        
-        console.log('Login response from direct URL:', directResponse);
-        
-        const { access, refresh } = directResponse.data;
-        
-        // Store both tokens
-        localStorage.setItem('token', access);
-        localStorage.setItem('refreshToken', refresh);
-        
-        // Set the Authorization header for future requests
-        api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-        
-        return {
-          token: access,
-          refreshToken: refresh,
-          success: true
-        };
-      } catch (directError) {
-        console.error('Login error with direct URL:', directError);
-        throw directError;
-      }
-    }
+    const response = await api.post('/auth/token/', { username: email, password });
+    const { access, refresh } = response.data;
+    
+    // Store both tokens
+    localStorage.setItem('token', access);
+    localStorage.setItem('refreshToken', refresh);
+    
+    // Set the Authorization header for future requests
+    api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+    
+    return {
+      token: access,
+      refreshToken: refresh,
+      success: true
+    };
   },
 
   register: async (userData: UserData) => {
@@ -452,36 +382,10 @@ export const authService = {
 
   validateToken: async () => {
     try {
-      // First try with the API instance using current API_BASE_URL
-      console.log('Validating token with API URL:', API_BASE_URL);
       const response = await api.post('/auth/token/verify/');
-      console.log('Token validation successful');
-      return true;
+      return !!response.data;
     } catch (error) {
-      console.error('Error validating token with relative URL:', error);
-      
-      try {
-        // Try with direct backend URL as fallback
-        console.log('Trying token validation with direct backend URL');
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          console.log('No token found in localStorage');
-          return false;
-        }
-        
-        const directResponse = await axios.post(
-          `${PRODUCTION_API_URL}/auth/token/verify/`,
-          { token },
-          { headers: { 'Content-Type': 'application/json' }}
-        );
-        
-        console.log('Token validation with direct URL successful');
-        return !!directResponse.data;
-      } catch (directError) {
-        console.error('Error validating token with direct URL:', directError);
-        return false;
-      }
+      return false;
     }
   },
 };
@@ -2315,26 +2219,21 @@ function formatImageUrl(imageUrl: string): string {
     return imageUrl;
   }
   
-  // Get the backend base URL without the /api suffix
-  const backendBaseUrl = import.meta.env.DEV
-    ? `http://${window.location.hostname}:8000`
-    : PRODUCTION_API_URL.replace('/api', ''); 
-  
   // Handle relative paths
   let formattedUrl;
   if (imageUrl.startsWith('/')) {
     // If it starts with /, join it with base URL
-    formattedUrl = `${backendBaseUrl}${imageUrl}`;
+    formattedUrl = `${API_BASE_URL}${imageUrl}`;
   } else if (imageUrl.startsWith('media/')) {
     // If it already includes media/ prefix
-    formattedUrl = `${backendBaseUrl}/${imageUrl}`;
+    formattedUrl = `${API_BASE_URL}/${imageUrl}`;
   } else {
     // Otherwise, add media/ prefix
-    formattedUrl = `${backendBaseUrl}/media/${imageUrl}`;
+    formattedUrl = `${API_BASE_URL}/media/${imageUrl}`;
   }
   
-  // Ensure the final URL uses HTTPS for production
-  if (!import.meta.env.DEV && formattedUrl.startsWith('http://')) {
+  // Ensure the final URL uses HTTPS
+  if (formattedUrl.startsWith('http://')) {
     formattedUrl = formattedUrl.replace('http://', 'https://');
     console.log('Converted formatted URL to HTTPS:', formattedUrl);
   }
