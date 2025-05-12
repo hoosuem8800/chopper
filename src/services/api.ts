@@ -200,10 +200,20 @@ api.interceptors.request.use((config) => {
                 sessionStorage.getItem('accessToken');
   
   if (token) {
-    // Detect token type: JWT tokens start with 'ey'
-    const prefix = token.startsWith('ey') ? 'Bearer' : 'Token';
+    // Detect token type: JWT tokens start with 'ey', other tokens may use different prefixes
+    let prefix = 'Bearer';
+    
+    // Check token format
+    if (token.startsWith('ey')) {
+      prefix = 'Bearer'; // JWT token
+    } else if (token.match(/^[0-9a-f]{40}$/i)) {
+      prefix = 'Token'; // Django token auth
+    } else if (token.includes('.') && token.split('.').length === 3) {
+      prefix = 'Bearer'; // Appears to be JWT but doesn't start with 'ey'
+    }
+    
     config.headers.Authorization = `${prefix} ${token}`;
-    console.log(`Found authentication token, adding to request with ${prefix} prefix`);
+    console.log(`Adding authentication token with ${prefix} prefix to request`);
   } else {
     console.warn('No authentication token found');
   }
@@ -211,7 +221,18 @@ api.interceptors.request.use((config) => {
   // Add standard CORS headers to all requests
   config.headers['X-Requested-With'] = 'XMLHttpRequest';
   
+  // Log detailed request info in development
+  console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+    baseURL: config.baseURL,
+    headers: config.headers,
+    data: config.data
+  });
+  
   return config;
+},
+(error) => {
+  console.error('Request interceptor error:', error);
+  return Promise.reject(error);
 });
 
 // Add response interceptor to handle token expiration
@@ -285,21 +306,59 @@ export const authService = {
       };
     }
     
-    const response = await api.post('/auth/token/', { username: email, password });
-    const { access, refresh } = response.data;
-    
-    // Store both tokens
-    localStorage.setItem('token', access);
-    localStorage.setItem('refreshToken', refresh);
-    
-    // Set the Authorization header for future requests
-    api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-    
-    return {
-      token: access,
-      refreshToken: refresh,
-      success: true
-    };
+    try {
+      console.log('Attempting login with backend URL:', API_BASE_URL);
+      
+      // First try using the relative path (for Vercel deployments with proxy)
+      const response = await api.post('/auth/token/', { username: email, password });
+      console.log('Login response:', response);
+      
+      const { access, refresh } = response.data;
+      
+      // Store both tokens
+      localStorage.setItem('token', access);
+      localStorage.setItem('refreshToken', refresh);
+      
+      // Set the Authorization header for future requests
+      api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+      
+      return {
+        token: access,
+        refreshToken: refresh,
+        success: true
+      };
+    } catch (error) {
+      console.error('Login error with relative URL, trying direct backend URL', error);
+      
+      try {
+        // Try the direct Railway backend URL as fallback
+        const directResponse = await axios.post(
+          `${PRODUCTION_API_URL}/auth/token/`, 
+          { username: email, password },
+          { headers: { 'Content-Type': 'application/json' }}
+        );
+        
+        console.log('Login response from direct URL:', directResponse);
+        
+        const { access, refresh } = directResponse.data;
+        
+        // Store both tokens
+        localStorage.setItem('token', access);
+        localStorage.setItem('refreshToken', refresh);
+        
+        // Set the Authorization header for future requests
+        api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+        
+        return {
+          token: access,
+          refreshToken: refresh,
+          success: true
+        };
+      } catch (directError) {
+        console.error('Login error with direct URL:', directError);
+        throw directError;
+      }
+    }
   },
 
   register: async (userData: UserData) => {
@@ -393,10 +452,36 @@ export const authService = {
 
   validateToken: async () => {
     try {
+      // First try with the API instance using current API_BASE_URL
+      console.log('Validating token with API URL:', API_BASE_URL);
       const response = await api.post('/auth/token/verify/');
-      return !!response.data;
+      console.log('Token validation successful');
+      return true;
     } catch (error) {
-      return false;
+      console.error('Error validating token with relative URL:', error);
+      
+      try {
+        // Try with direct backend URL as fallback
+        console.log('Trying token validation with direct backend URL');
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          console.log('No token found in localStorage');
+          return false;
+        }
+        
+        const directResponse = await axios.post(
+          `${PRODUCTION_API_URL}/auth/token/verify/`,
+          { token },
+          { headers: { 'Content-Type': 'application/json' }}
+        );
+        
+        console.log('Token validation with direct URL successful');
+        return !!directResponse.data;
+      } catch (directError) {
+        console.error('Error validating token with direct URL:', directError);
+        return false;
+      }
     }
   },
 };

@@ -908,16 +908,16 @@ const ScanPage = () => {
           // Submit for analysis
           await handleAnalyzeScan(proxyFile, 'quickscan');
         }
-        
-        // Scroll to the results section
-        setTimeout(() => {
-          const resultElement = document.getElementById('prediction-result-quickscan');
-          if (resultElement) {
-            resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }, 500);
-        
-        return;
+          
+          // Scroll to the results section
+          setTimeout(() => {
+            const resultElement = document.getElementById('prediction-result-quickscan');
+            if (resultElement) {
+              resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 500);
+          
+          return;
       } catch (error) {
         console.error("Error fetching X-ray by ID, will try appointment results instead:", error);
         
@@ -932,9 +932,9 @@ const ScanPage = () => {
           
           try {
             const appointment = await appointmentService.getAppointment(Number(appointmentId));
-            if (appointment && appointment.xray_result && appointment.xray_result.image) {
-              console.log("Found appointment with X-ray:", appointment);
-              
+        if (appointment && appointment.xray_result && appointment.xray_result.image) {
+          console.log("Found appointment with X-ray:", appointment);
+          
               // Try to load the image
               const imageUrl = appointment.xray_result.image;
               
@@ -942,21 +942,21 @@ const ScanPage = () => {
               let secureImageUrl = imageUrl;
               if (imageUrl.startsWith('http://')) {
                 secureImageUrl = imageUrl.replace('http://', 'https://');
-              }
+            }
               
               try {
                 // First try direct fetch with secure URL
                 const response = await fetch(secureImageUrl);
                 
-                if (!response.ok) {
+            if (!response.ok) {
                   throw new Error(`Failed to fetch image: ${response.status}`);
-                }
-                
-                const blob = await response.blob();
+            }
+            
+            const blob = await response.blob();
                 const file = new File([blob], `xray-appointment-${appointmentId}.jpg`, { type: blob.type || 'image/jpeg' });
-                
-                // Submit for analysis
-                await handleAnalyzeScan(file);
+            
+            // Submit for analysis
+            await handleAnalyzeScan(file);
               } catch (fetchError) {
                 console.error("Direct fetch failed for appointment image, trying proxy:", fetchError);
                 
@@ -984,11 +984,11 @@ const ScanPage = () => {
                 
                 // Submit for analysis
                 await handleAnalyzeScan(proxyFile);
-              }
+          }
               
               return;
-            } else {
-              throw new Error('No X-ray found in appointment');
+        } else {
+          throw new Error('No X-ray found in appointment');
             }
           } catch (appointmentError) {
             console.error(`Error fetching appointment #${appointmentId}:`, appointmentError);
