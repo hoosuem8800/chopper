@@ -230,78 +230,78 @@ const NotificationsPage: React.FC = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-6 sm:py-10 flex flex-col">
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex-grow">
-        <div className="flex items-center mb-6 gap-4">
+    <div className="min-h-screen flex flex-col">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex-grow py-6 sm:py-10">
+        <div className="flex items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
           <Button 
             variant="ghost"
-            className="p-2" 
+            className="p-1.5 sm:p-2" 
             onClick={() => navigate(-1)}
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Notification Center</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Notification Center</h1>
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-4 flex items-center justify-between">
+            <CardContent className="p-3 sm:p-4 flex items-center justify-between">
               <div>
-                <p className="text-blue-600 font-medium">Total</p>
-                <p className="text-2xl font-bold text-blue-700">{totalCount}</p>
+                <p className="text-blue-600 font-medium text-xs sm:text-sm">Total</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-700">{totalCount}</p>
               </div>
-              <Bell className="h-8 w-8 text-blue-500 opacity-50" />
+              <Bell className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 opacity-50" />
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-            <CardContent className="p-4 flex items-center justify-between">
+            <CardContent className="p-3 sm:p-4 flex items-center justify-between">
               <div>
-                <p className="text-primary font-medium">Unread</p>
-                <p className="text-2xl font-bold text-primary">{unreadCount}</p>
+                <p className="text-primary font-medium text-xs sm:text-sm">Unread</p>
+                <p className="text-xl sm:text-2xl font-bold text-primary">{unreadCount}</p>
               </div>
-              <AlertCircle className="h-8 w-8 text-primary opacity-50" />
+              <AlertCircle className="h-6 w-6 sm:h-8 sm:w-8 text-primary opacity-50" />
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
-            <CardContent className="p-4 flex items-center justify-between">
+            <CardContent className="p-3 sm:p-4 flex items-center justify-between">
               <div>
-                <p className="text-indigo-600 font-medium">Types</p>
-                <p className="text-2xl font-bold text-indigo-700">{Object.keys(countByType).length}</p>
+                <p className="text-indigo-600 font-medium text-xs sm:text-sm">Types</p>
+                <p className="text-xl sm:text-2xl font-bold text-indigo-700">{Object.keys(countByType).length}</p>
               </div>
-              <Filter className="h-8 w-8 text-indigo-500 opacity-50" />
+              <Filter className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-500 opacity-50" />
             </CardContent>
           </Card>
         </div>
 
         <Card className="w-full shadow-md">
-          <CardHeader className="pb-4 flex flex-col space-y-4">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
+          <CardHeader className="pb-2 sm:pb-4 flex flex-col space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
+              <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-lg sm:text-xl">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 Activity Feed
                 {unreadCount > 0 && (
-                  <Badge variant="default" className="ml-2 bg-primary">
+                  <Badge variant="default" className="ml-1 sm:ml-2 bg-primary text-[10px] sm:text-xs py-0">
                     {unreadCount} new
                   </Badge>
                 )}
               </CardTitle>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2">
                 {notifications.filter(n => !n.is_read).length > 0 && (
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={handleMarkAllAsRead}
-                    className="text-xs"
+                    className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3"
                   >
-                    <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                    <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 sm:mr-1.5" />
                     Mark all as read
                   </Button>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" className="h-7 sm:h-8 w-7 sm:w-8 p-0">
+                      <MoreHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -317,12 +317,12 @@ const NotificationsPage: React.FC = () => {
             </div>
 
             {/* Search and filters */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-2 sm:left-2.5 top-2 sm:top-2.5 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
                 <Input
                   placeholder="Search notifications..."
-                  className="pl-9 bg-gray-50 border-gray-200 focus:bg-white"
+                  className="pl-7 sm:pl-9 text-xs sm:text-sm h-8 sm:h-9 bg-gray-50 border-gray-200 focus:bg-white"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -332,15 +332,15 @@ const NotificationsPage: React.FC = () => {
                 onValueChange={setActiveFilter}
                 className="w-full sm:w-auto"
               >
-                <TabsList className="w-full h-auto p-1 bg-gray-100">
-                  <TabsTrigger value="all" className="text-xs">
+                <TabsList className="w-full h-auto p-0.5 sm:p-1 bg-gray-100">
+                  <TabsTrigger value="all" className="text-[9px] sm:text-xs py-1 sm:py-1.5 px-2 sm:px-3">
                     All
-                    <span className="ml-1.5 text-gray-500">({totalCount})</span>
+                    <span className="ml-1 sm:ml-1.5 text-gray-500">({totalCount})</span>
                   </TabsTrigger>
                   {notificationTypes.filter(t => t !== "all").map(type => (
-                    <TabsTrigger key={type} value={type} className="text-xs">
+                    <TabsTrigger key={type} value={type} className="text-[9px] sm:text-xs py-1 sm:py-1.5 px-2 sm:px-3">
                       {formatTypeLabel(type)}
-                      <span className="ml-1.5 text-gray-500">({countByType[type]})</span>
+                      <span className="ml-1 sm:ml-1.5 text-gray-500">({countByType[type]})</span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -359,31 +359,31 @@ const NotificationsPage: React.FC = () => {
                   {paginatedNotifications.map((notification) => (
                     <div 
                       key={notification.id} 
-                      className={`flex p-5 rounded-lg ${!notification.is_read 
+                      className={`flex p-3 sm:p-5 rounded-lg ${!notification.is_read 
                         ? 'bg-primary/5 border-l-4 border-l-primary shadow-sm' 
                         : 'bg-gray-50 hover:bg-gray-100/50'} 
                         relative cursor-pointer hover:shadow-md transition-all duration-200 group border border-gray-100`}
                       onClick={() => handleNotificationClick(notification)}
                     >
-                      <div className="mr-5 mt-0.5">
-                        <div className={`${!notification.is_read ? 'bg-white' : 'bg-gray-100'} p-2.5 rounded-full shadow-sm
+                      <div className="mr-3 sm:mr-5 mt-0.5">
+                        <div className={`${!notification.is_read ? 'bg-white' : 'bg-gray-100'} p-2 sm:p-2.5 rounded-full shadow-sm
                           group-hover:scale-110 transition-transform duration-200`}>
                           {getNotificationIcon(notification.notification_type)}
                         </div>
                       </div>
                       
                       <div className="flex-1">
-                        <div className="flex flex-wrap sm:flex-nowrap items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2 mr-2">
-                            <h4 className="font-medium">{notification.title}</h4>
+                        <div className="flex flex-wrap sm:flex-nowrap items-start justify-between gap-1 sm:gap-2 mb-1 sm:mb-2">
+                          <div className="flex items-center gap-1 sm:gap-2 mr-1 sm:mr-2">
+                            <h4 className="font-medium text-sm sm:text-base">{notification.title}</h4>
                             {!notification.is_read && (
-                              <Badge variant="default" className="bg-primary text-[10px] py-0">New</Badge>
+                              <Badge variant="default" className="bg-primary text-[9px] sm:text-[10px] py-0">New</Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                             <Badge 
                               variant="outline" 
-                              className={`text-xs ${
+                              className={`text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 ${
                                 notification.notification_type === 'appointment_status' ? 'bg-blue-50 text-blue-500 border-blue-200' : 
                                 notification.notification_type === 'appointment_accepted' ? 'bg-green-50 text-green-500 border-green-200' :
                                 notification.notification_type === 'appointment_rejected' ? 'bg-red-50 text-red-500 border-red-200' :
@@ -394,32 +394,32 @@ const NotificationsPage: React.FC = () => {
                             >
                               {formatTypeLabel(notification.notification_type)}
                             </Badge>
-                            <span className="text-gray-400 text-xs whitespace-nowrap">{formatDate(notification.created_at)}</span>
+                            <span className="text-gray-400 text-[9px] sm:text-xs whitespace-nowrap">{formatDate(notification.created_at)}</span>
                           </div>
                         </div>
-                        <p className="text-gray-600 text-sm mb-4">{notification.message}</p>
+                        <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-4">{notification.message}</p>
                         
                         {/* X-ray/Scan specific info card */}
                         {(notification.notification_type === 'xray' || 
                           notification.notification_type === 'scan' || 
                           notification.title.toLowerCase().includes('x-ray') || 
                           notification.message.toLowerCase().includes('x-ray')) && (
-                          <div className="mb-4 bg-indigo-50/50 rounded-md p-3 border border-indigo-100">
-                            <h5 className="text-xs font-medium text-indigo-700 mb-2 flex items-center gap-1">
-                              <Image className="h-3.5 w-3.5" />
+                          <div className="mb-2 sm:mb-4 bg-indigo-50/50 rounded-md p-2 sm:p-3 border border-indigo-100">
+                            <h5 className="text-[10px] sm:text-xs font-medium text-indigo-700 mb-1 sm:mb-2 flex items-center gap-1">
+                              <Image className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                               Scan Information
                             </h5>
-                            <ul className="text-xs text-indigo-600/80 space-y-1.5">
-                              <li className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-indigo-300"></span>
+                            <ul className="text-[9px] sm:text-xs text-indigo-600/80 space-y-1 sm:space-y-1.5">
+                              <li className="flex items-center gap-1 sm:gap-1.5">
+                                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-300"></span>
                                 <span>Scan ID: {notification.related_id || 'Not available'}</span>
                               </li>
-                              <li className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-indigo-300"></span>
+                              <li className="flex items-center gap-1 sm:gap-1.5">
+                                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-300"></span>
                                 <span>Status: Ready for review</span>
                               </li>
-                              <li className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-indigo-300"></span>
+                              <li className="flex items-center gap-1 sm:gap-1.5">
+                                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-300"></span>
                                 <span>Type: {notification.message.toLowerCase().includes('ct') ? 'CT Scan' : 
                                   notification.message.toLowerCase().includes('mri') ? 'MRI Scan' : 'X-Ray'}</span>
                               </li>
@@ -432,14 +432,14 @@ const NotificationsPage: React.FC = () => {
                           notification.notification_type === 'appointment_accepted' || 
                           notification.notification_type === 'appointment_rejected' || 
                           notification.notification_type === 'appointment_reminder') && (
-                          <div className="mb-4 bg-blue-50/50 rounded-md p-3 border border-blue-100">
-                            <h5 className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-1">
-                              <Calendar className="h-3.5 w-3.5" />
+                          <div className="mb-2 sm:mb-4 bg-blue-50/50 rounded-md p-2 sm:p-3 border border-blue-100">
+                            <h5 className="text-[10px] sm:text-xs font-medium text-blue-700 mb-1 sm:mb-2 flex items-center gap-1">
+                              <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                               Appointment Details
                             </h5>
-                            <ul className="text-xs text-blue-600/80 space-y-1.5">
-                              <li className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-blue-300"></span>
+                            <ul className="text-[9px] sm:text-xs text-blue-600/80 space-y-1 sm:space-y-1.5">
+                              <li className="flex items-center gap-1 sm:gap-1.5">
+                                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-300"></span>
                                 <span>Status: {
                                   notification.notification_type === 'appointment_accepted' ? 'Confirmed' :
                                   notification.notification_type === 'appointment_rejected' ? 'Declined' :
@@ -448,14 +448,14 @@ const NotificationsPage: React.FC = () => {
                                 }</span>
                               </li>
                               {notification.message.match(/\d{1,2}:\d{2}/) && (
-                                <li className="flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full bg-blue-300"></span>
+                                <li className="flex items-center gap-1 sm:gap-1.5">
+                                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-300"></span>
                                   <span>Time: {notification.message.match(/\d{1,2}:\d{2}/)[0]}</span>
                                 </li>
                               )}
                               {notification.message.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2}(?:st|nd|rd|th)?\b/) && (
-                                <li className="flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full bg-blue-300"></span>
+                                <li className="flex items-center gap-1 sm:gap-1.5">
+                                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-300"></span>
                                   <span>Date: {notification.message.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2}(?:st|nd|rd|th)?\b/)[0]}</span>
                                 </li>
                               )}
@@ -466,32 +466,32 @@ const NotificationsPage: React.FC = () => {
                         <div className="flex items-center justify-between mt-1">
                           {/* Context-specific additional information */}
                           {notification.notification_type === 'appointment_status' && (
-                            <div className="text-xs text-gray-500 flex items-center gap-1">
-                              <Calendar className="h-3.5 w-3.5" />
+                            <div className="text-[9px] sm:text-xs text-gray-500 flex items-center gap-1">
+                              <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                               <span>Check your appointment details</span>
                             </div>
                           )}
                           {notification.notification_type === 'appointment_accepted' && (
-                            <div className="text-xs text-green-500 flex items-center gap-1">
-                              <CheckCircle className="h-3.5 w-3.5" />
+                            <div className="text-[9px] sm:text-xs text-green-500 flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                               <span>Your appointment has been confirmed</span>
                             </div>
                           )}
                           {notification.notification_type === 'appointment_rejected' && (
-                            <div className="text-xs text-red-500 flex items-center gap-1">
-                              <XCircle className="h-3.5 w-3.5" />
+                            <div className="text-[9px] sm:text-xs text-red-500 flex items-center gap-1">
+                              <XCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                               <span>Your appointment was declined</span>
                             </div>
                           )}
                           {notification.notification_type === 'appointment_reminder' && (
-                            <div className="text-xs text-amber-500 flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5" />
+                            <div className="text-[9px] sm:text-xs text-amber-500 flex items-center gap-1">
+                              <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                               <span>Don't forget your upcoming appointment</span>
                             </div>
                           )}
                           {notification.notification_type === 'xray' && (
-                            <div className="text-xs text-indigo-500 flex items-center gap-1">
-                              <Image className="h-3.5 w-3.5" />
+                            <div className="text-[9px] sm:text-xs text-indigo-500 flex items-center gap-1">
+                              <Image className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                               <span>Your scan results are ready to view</span>
                             </div>
                           )}
@@ -501,15 +501,13 @@ const NotificationsPage: React.FC = () => {
                             <Button 
                               variant="default" 
                               size="sm" 
-                              className="text-xs gap-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-sm group-hover:scale-105 transition-transform"
+                              className="text-[9px] sm:text-xs gap-1 sm:gap-1.5 h-7 sm:h-8 px-2 sm:px-3 py-0 sm:py-0.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-sm group-hover:scale-105 transition-transform"
                               onClick={(e) => handleCheckResult(e, notification.related_id)}
                             >
-                              <ExternalLink className="h-3 w-3" />
+                              <ExternalLink className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                               View Scan Results
                             </Button>
                           )}
-
-                          
                         </div>
                       </div>
                       
@@ -519,18 +517,15 @@ const NotificationsPage: React.FC = () => {
                             e.stopPropagation();
                             handleMarkAsRead(notification.id);
                           }}
-                          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 sm:top-3 right-2 sm:right-3 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="Mark as read"
                         >
-                          <CheckCircle className="h-4 w-4" />
+                          <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </button>
                       )}
                     </div>
                   ))}
                 </div>
-                
-                {/* Pagination controls */}
-                
               </>
             ) : (
               <div className="text-center py-12 bg-gray-50/70 rounded-lg border border-dashed border-gray-200">
@@ -564,22 +559,22 @@ const NotificationsPage: React.FC = () => {
         
         {/* Pagination controls - Moved outside the card */}
         {filteredNotifications.length > 0 && pageCount > 1 && (
-          <div className="mt-8 mb-10 flex justify-center">
+          <div className="mt-6 sm:mt-8 mb-8 sm:mb-10 flex justify-center">
             <div className="relative" 
               style={{ 
                 width: (() => {
                   // Determine width based on number of pages
-                  if (pageCount <= 1) return '240px';
-                  if (pageCount === 2) return '300px';  
-                  if (pageCount === 3) return '360px';
-                  if (pageCount === 4) return '420px';
-                  return pageCount <= 5 ? '480px' : '520px'; // 5+ pages
+                  if (pageCount <= 1) return '220px';
+                  if (pageCount === 2) return '260px';  
+                  if (pageCount === 3) return '300px';
+                  if (pageCount === 4) return '340px';
+                  return pageCount <= 5 ? '380px' : '420px'; // 5+ pages
                 })(),
-                maxWidth: '95vw'
+                maxWidth: '90vw'
               }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-100/20 to-blue-100/20 rounded-[22px] blur-xl -z-10 transform scale-105 opacity-60"></div>
-              <Pagination className="pagination-Glass p-3 px-4 rounded-2xl w-full">
+              <Pagination className="pagination-Glass p-2 sm:p-3 px-3 sm:px-4 rounded-2xl w-full">
                 <PaginationContent className="pagination-content flex justify-center">
                   <PaginationItem className="pagination-item">
                     <PaginationPrevious 
@@ -588,7 +583,7 @@ const NotificationsPage: React.FC = () => {
                         e.preventDefault();
                         if (page > 1) setPage(page - 1);
                       }}
-                      className={`pagination-prev ${page === 1 ? "pointer-events-none opacity-50" : ""} transition-all duration-300 hover:bg-white/60 dark:hover:bg-slate-800/50 hover:scale-105 hover:shadow-md`}
+                      className={`pagination-prev text-[10px] sm:text-xs h-7 sm:h-8 min-w-7 sm:min-w-8 px-2 sm:px-3 ${page === 1 ? "pointer-events-none opacity-50" : ""} transition-all duration-300 hover:bg-white/60 dark:hover:bg-slate-800/50 hover:scale-105 hover:shadow-md`}
                     />
                   </PaginationItem>
                   
@@ -614,7 +609,7 @@ const NotificationsPage: React.FC = () => {
                             setPage(pageNum);
                           }}
                           isActive={page === pageNum}
-                          className={`pagination-link ${page === pageNum 
+                          className={`pagination-link text-[10px] sm:text-xs h-7 sm:h-8 min-w-7 sm:min-w-8 ${page === pageNum 
                             ? "active bg-cyan-500/80 backdrop-blur-md text-white dark:bg-cyan-600/80 hover:bg-cyan-600/90 dark:hover:bg-cyan-500/90 shadow-lg" 
                             : "hover:bg-white/60 dark:hover:bg-slate-800/50 transition-all duration-300 hover:scale-110"
                           }`}
@@ -627,7 +622,7 @@ const NotificationsPage: React.FC = () => {
                   
                   {pageCount > 5 && page < pageCount - 2 && (
                     <PaginationItem className="pagination-item">
-                      <PaginationEllipsis className="pagination-link backdrop-blur-sm hover:bg-white/30 dark:hover:bg-slate-800/30 transition-all duration-300" />
+                      <PaginationEllipsis className="pagination-link backdrop-blur-sm hover:bg-white/30 dark:hover:bg-slate-800/30 transition-all duration-300 text-[10px] sm:text-xs h-7 sm:h-8" />
                     </PaginationItem>
                   )}
                   
@@ -638,7 +633,7 @@ const NotificationsPage: React.FC = () => {
                         e.preventDefault();
                         if (page < pageCount) setPage(page + 1);
                       }}
-                      className={`pagination-next ${page === pageCount ? "pointer-events-none opacity-50" : ""} transition-all duration-300 hover:bg-white/60 dark:hover:bg-slate-800/50 hover:scale-105 hover:shadow-md`}
+                      className={`pagination-next text-[10px] sm:text-xs h-7 sm:h-8 min-w-7 sm:min-w-8 px-2 sm:px-3 ${page === pageCount ? "pointer-events-none opacity-50" : ""} transition-all duration-300 hover:bg-white/60 dark:hover:bg-slate-800/50 hover:scale-105 hover:shadow-md`}
                     />
                   </PaginationItem>
                 </PaginationContent>

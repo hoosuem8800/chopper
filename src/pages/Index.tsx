@@ -152,35 +152,35 @@ const Index = () => {
         
         const response = await axios.get(`${API_BASE_URL}/creators/`, { 
           timeout: 5000,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-        
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+            
         logger.log("Response status:", response.status);
-        
-        if (response.status === 200 && response.data) {
+            
+              if (response.status === 200 && response.data) {
           logger.log("Successfully fetched creators data");
           logger.log("Creators API raw response data:", response.data);
-          
+        
           // Process the response data and set team members
           if (Array.isArray(response.data) && response.data.length > 0) {
             const formattedTeamMembers = response.data.map(creator => ({
               id: creator.id,
-              first_name: creator.first_name || '',
-              last_name: creator.last_name || '',
-              email: creator.email || '',
-              phone_number: creator.phone_number || '',
-              job_title: creator.job_title || '',
-              role: creator.role || '',
-              contribution: creator.contribution || '',
+                first_name: creator.first_name || '',
+                last_name: creator.last_name || '',
+                email: creator.email || '',
+                phone_number: creator.phone_number || '',
+                job_title: creator.job_title || '',
+                role: creator.role || '',
+                contribution: creator.contribution || '',
               profile_picture: creator.profile_picture || '',
-              is_active: creator.is_active === undefined ? true : creator.is_active
+                is_active: creator.is_active === undefined ? true : creator.is_active
             }));
             
             logger.log("Formatted team members:", formattedTeamMembers);
-            setTeamMembers(formattedTeamMembers);
+              setTeamMembers(formattedTeamMembers);
           } else {
             // If no data or invalid format, use fallback data
             logger.log("No valid team data found, using fallback data");

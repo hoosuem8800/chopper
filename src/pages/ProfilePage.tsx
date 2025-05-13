@@ -999,47 +999,47 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="flex flex-col items-center w-full h-full py-6 sm:py-10">
+    <div className="flex flex-col items-center w-full h-full py-4 sm:py-6 md:py-10">
       <GlobalStyles />
-      <div className="w-full max-w-6xl px-4 sm:px-6 lg:px-8 mt-4 mb-20">
+      <div className="w-full max-w-6xl px-3 sm:px-6 lg:px-8 mt-2 sm:mt-4 mb-16 sm:mb-20">
         {/* Modern Profile Container */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100/50">
           {/* Tab navigation */}
           <Tabs defaultValue={activeTab} className="w-full" onValueChange={handleTabChange}>
             <div className="border-t border-b border-gray-100 bg-gray-50/80">
               <div className="max-w-4xl mx-auto">
-                <TabsList className="w-full flex justify-center gap-4 p-0 bg-transparent border-0 shadow-none">
+                <TabsList className="w-full flex justify-center gap-2 sm:gap-4 p-0 bg-transparent border-0 shadow-none">
                 <TabsTrigger 
                   value="profile" 
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-cyan-500 relative px-4 py-3
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-cyan-500 relative px-2 sm:px-4 py-2 sm:py-3
                       group transition-all duration-300 hover:text-cyan-500 border-0 rounded-none flex-1 max-w-xs"
                   >
-                    <div className="flex items-center justify-center gap-2">
-                      <User size={18} className="transition-transform duration-300 group-hover:scale-110 group-data-[state=active]:text-cyan-500" />
-                    <span className="font-medium hidden data-[state=active]:inline sm:inline">Profile</span>
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
+                      <User size={16} className="transition-transform duration-300 group-hover:scale-110 group-data-[state=active]:text-cyan-500" />
+                    <span className="font-medium text-xs sm:text-sm md:text-base hidden data-[state=active]:inline sm:inline">Profile</span>
                   </div>
                     <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 scale-x-0 group-hover:scale-x-100 group-data-[state=active]:scale-x-100 transition-transform duration-300 ease-out" />
                 </TabsTrigger>
                 <TabsTrigger 
                   value="notifications" 
                   id="notifications-tab"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-cyan-500 relative px-4 py-3
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-cyan-500 relative px-2 sm:px-4 py-2 sm:py-3
                       group transition-all duration-300 hover:text-cyan-500 border-0 rounded-none flex-1 max-w-xs"
                   >
-                    <div className="flex items-center justify-center gap-2">
-                      <Bell size={18} className="transition-transform duration-300 group-hover:scale-110 group-data-[state=active]:text-cyan-500" />
-                    <span className="font-medium hidden data-[state=active]:inline sm:inline">Notifications</span>
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
+                      <Bell size={16} className="transition-transform duration-300 group-hover:scale-110 group-data-[state=active]:text-cyan-500" />
+                    <span className="font-medium text-xs sm:text-sm md:text-base hidden data-[state=active]:inline sm:inline">Notifications</span>
                   </div>
                     <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 scale-x-0 group-hover:scale-x-100 group-data-[state=active]:scale-x-100 transition-transform duration-300 ease-out" />
                 </TabsTrigger>
                 <TabsTrigger 
                   value="appointments" 
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-cyan-500 relative px-4 py-3
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-cyan-500 relative px-2 sm:px-4 py-2 sm:py-3
                       group transition-all duration-300 hover:text-cyan-500 border-0 rounded-none flex-1 max-w-xs"
                   >
-                    <div className="flex items-center justify-center gap-2">
-                      <Clock size={18} className="transition-transform duration-300 group-hover:scale-110 group-data-[state=active]:text-cyan-500" />
-                    <span className="font-medium hidden data-[state=active]:inline sm:inline">Appointments</span>
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
+                      <Clock size={16} className="transition-transform duration-300 group-hover:scale-110 group-data-[state=active]:text-cyan-500" />
+                    <span className="font-medium text-xs sm:text-sm md:text-base hidden data-[state=active]:inline sm:inline">Appointments</span>
                   </div>
                     <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 scale-x-0 group-hover:scale-x-100 group-data-[state=active]:scale-x-100 transition-transform duration-300 ease-out" />
                 </TabsTrigger>
@@ -1047,7 +1047,7 @@ const ProfilePage = () => {
               </div>
             </div>
             
-            <TabsContent value="profile" className="px-6 sm:px-8 py-8">
+            <TabsContent value="profile" className="px-4 sm:px-6 md:px-8 py-6 sm:py-8">
                     {editing ? (
                 <div className="max-w-3xl mx-auto">
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
@@ -1061,60 +1061,60 @@ const ProfilePage = () => {
                     </div>
                     
                     {/* Form content */}
-                    <form className="p-6 space-y-6">
+                    <form className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                       {/* User Identity Section */}
-                      <div className="mb-6 flex items-center gap-5">
-                        <div className="relative" onClick={handleShowProfileEditor}>
-                          <Avatar className="h-20 w-20 border-2 border-primary/20 cursor-pointer hover:border-primary/70 transition-all duration-300">
+                      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                        <div className="relative mx-auto sm:mx-0" onClick={handleShowProfileEditor}>
+                          <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-primary/20 cursor-pointer hover:border-primary/70 transition-all duration-300">
                             <AvatarImage src={tempUserData.profileImage} alt={`${tempUserData.firstName} ${tempUserData.lastName}`} />
                             <AvatarFallback className="bg-primary/10 text-primary">
                               {tempUserData.firstName?.[0]}{tempUserData.lastName?.[0]}
                       </AvatarFallback>
                     </Avatar>
                           <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-full shadow-md">
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
                           </div>
                     </div>
-                        <div>
+                        <div className="text-center sm:text-left">
                           <h4 className="text-gray-800 font-medium mb-1">Profile Picture</h4>
-                          <p className="text-gray-500 text-sm">Click on the image to change your profile picture</p>
+                          <p className="text-gray-500 text-xs sm:text-sm">Click on the image to change your profile picture</p>
                       </div>
                   </div>
                       
                       {/* Personal Details Section */}
-                      <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                        <div className="flex items-center mb-4">
-                          <div className="p-2 rounded-lg bg-primary/10 mr-3">
-                            <User className="h-5 w-5 text-primary" />
+                      <div className="bg-gray-50 rounded-lg p-3 sm:p-5 border border-gray-200">
+                        <div className="flex items-center mb-3 sm:mb-4">
+                          <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 mr-2 sm:mr-3">
+                            <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                           </div>
-                          <h4 className="text-base font-medium">Personal Details</h4>
+                          <h4 className="text-sm sm:text-base font-medium">Personal Details</h4>
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">First Name</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-1 sm:space-y-2">
+                            <Label htmlFor="firstName" className="text-xs sm:text-sm font-medium text-gray-700">First Name</Label>
                           <Input 
                             id="firstName" 
                             name="firstName" 
                             value={tempUserData.firstName} 
                             onChange={handleInputChange} 
                               placeholder="Enter your first name"
-                              className="h-11 border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
+                              className="h-9 sm:h-11 text-sm border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
                           />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">Last Name</Label>
+                        <div className="space-y-1 sm:space-y-2">
+                            <Label htmlFor="lastName" className="text-xs sm:text-sm font-medium text-gray-700">Last Name</Label>
                           <Input 
                             id="lastName" 
                             name="lastName" 
                             value={tempUserData.lastName} 
                             onChange={handleInputChange} 
                               placeholder="Enter your last name"
-                              className="h-11 border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
+                              className="h-9 sm:h-11 text-sm border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
                           />
                         </div>
-                          <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
+                          <div className="space-y-1 sm:space-y-2 sm:col-span-2">
+                            <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-gray-700">Email Address</Label>
                         <Input 
                           id="email" 
                           name="email" 
@@ -1122,24 +1122,24 @@ const ProfilePage = () => {
                           value={tempUserData.email} 
                           onChange={handleInputChange} 
                             placeholder="Enter your email"
-                              className="h-11 border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
+                              className="h-9 sm:h-11 text-sm border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
                         />
                       </div>
                         </div>
                       </div>
                       
                       {/* Contact Information Section */}
-                      <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                        <div className="flex items-center mb-4">
-                          <div className="p-2 rounded-lg bg-primary/10 mr-3">
-                            <Phone className="h-5 w-5 text-primary" />
+                      <div className="bg-gray-50 rounded-lg p-3 sm:p-5 border border-gray-200">
+                        <div className="flex items-center mb-3 sm:mb-4">
+                          <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 mr-2 sm:mr-3">
+                            <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                           </div>
-                          <h4 className="text-base font-medium">Contact Information</h4>
+                          <h4 className="text-sm sm:text-base font-medium">Contact Information</h4>
                         </div>
                         
-                        <div className="space-y-4">
-                      <div className="space-y-2">
-                          <Label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700">Phone Number</Label>
+                        <div className="space-y-3 sm:space-y-4">
+                      <div className="space-y-1 sm:space-y-2">
+                          <Label htmlFor="phoneNumber" className="text-xs sm:text-sm font-medium text-gray-700">Phone Number</Label>
                         <Input 
                           id="phoneNumber" 
                           name="phoneNumber" 
@@ -1147,18 +1147,18 @@ const ProfilePage = () => {
                           value={tempUserData.phoneNumber} 
                           onChange={handleInputChange} 
                             placeholder="Enter your phone number"
-                              className="h-11 border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
+                              className="h-9 sm:h-11 text-sm border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
                         />
                       </div>
-                      <div className="space-y-2">
-                          <Label htmlFor="address" className="text-sm font-medium text-gray-700">Address</Label>
+                      <div className="space-y-1 sm:space-y-2">
+                          <Label htmlFor="address" className="text-xs sm:text-sm font-medium text-gray-700">Address</Label>
                         <Input 
                           id="address" 
                           name="address" 
                           value={tempUserData.address} 
                           onChange={handleInputChange} 
                             placeholder="Enter your address"
-                              className="h-11 border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
+                              className="h-9 sm:h-11 text-sm border-gray-200 focus:border-primary focus:ring-primary/30 transition-colors duration-200"
                         />
                       </div>
                                     </div>
@@ -1203,10 +1203,10 @@ const ProfilePage = () => {
                       {/* Updated card-based personal information section */}
                       <div className="max-w-4xl mx-auto space-y-6">
                         {/* Basic Information Card */}
-                        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-5 border border-gray-200 shadow-sm">
-                          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-                            <div className="bg-white p-2 rounded-full border-4 border-white shadow-md">
-                              <Avatar className="h-20 w-20">
+                        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-3 sm:p-4 border border-gray-200 shadow-sm">
+                          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3">
+                            <div className="bg-white p-1.5 rounded-full border-4 border-white shadow-md">
+                              <Avatar className="h-16 w-16 sm:h-18 sm:w-18">
                                 <AvatarImage src={userData.profileImage} alt={`${userData.firstName} ${userData.lastName}`} />
                                 <AvatarFallback className="bg-primary/10 text-primary">
                                   {userData.firstName?.[0]}{userData.lastName?.[0]}
@@ -1215,28 +1215,28 @@ const ProfilePage = () => {
                             </div>
                             
                             <div className="text-center sm:text-left">
-                              <h3 className="text-xl font-bold text-gray-800 mb-1">{userData.firstName} {userData.lastName}</h3>
-                              <div className="flex items-center justify-center sm:justify-start text-gray-500 mb-3">
-                                <Mail className="h-4 w-4 mr-2 text-primary/70" />
-                                <span>{userData.email}</span>
+                              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1">{userData.firstName} {userData.lastName}</h3>
+                              <div className="flex items-center justify-center sm:justify-start text-gray-500 mb-2">
+                                <Mail className="h-3.5 w-3.5 mr-1.5 text-primary/70" />
+                                <span className="text-sm">{userData.email}</span>
                               </div>
                               
-                              <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                                <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 hover:scale-105 transition-transform duration-200">
-                                  <User className="h-3 w-3 mr-1" />
+                              <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start">
+                                <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 hover:scale-105 transition-transform duration-200 text-[10px] px-2 py-0.5">
+                                  <User className="h-2.5 w-2.5 mr-0.5" />
                                   {user?.role || 'User'}
                                 </Badge>
                                 
                                 {user?.subscription_type === 'premium' && (
-                                  <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:scale-105 transition-transform duration-200">
-                                    <Award className="h-3 w-3 mr-1" />
+                                  <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:scale-105 transition-transform duration-200 text-[10px] px-2 py-0.5">
+                                    <Award className="h-2.5 w-2.5 mr-0.5" />
                                     Premium
                                   </Badge>
                                 )}
                                 
-                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:scale-105 transition-transform duration-200">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
+                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:scale-105 transition-transform duration-200 text-[10px] px-2 py-0.5">
+                                  <div className="flex items-center gap-0.5">
+                                    <Calendar className="h-2.5 w-2.5" />
                                     <span>Joined {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
                                   </div>
                                 </Badge>
@@ -1246,10 +1246,10 @@ const ProfilePage = () => {
                             <div className="mt-4 sm:mt-0 sm:ml-auto">
                         <Button 
                                 onClick={() => setEditing(true)} 
-                                className="h-9 bg-primary hover:bg-white hover:text-cyan-500 hover:border hover:border-cyan-300 hover:shadow-md transition-all duration-200"
+                                className="h-7 bg-primary hover:bg-white hover:text-cyan-500 hover:border hover:border-cyan-300 hover:shadow-md transition-all duration-200 text-xs px-3"
                         >
-                                <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                                Edit
+                                <Pencil className="h-3 w-3 mr-1" />
+                                <span className="text-xs">Edit</span>
                       </Button>
                             </div>
                           </div>
@@ -1287,31 +1287,31 @@ const ProfilePage = () => {
                         </div>
                         
                         {/* Notification Preferences Card */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all duration-300">
-                          <div className="flex items-center justify-between mb-4">
+                        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
+                          <div className="flex items-center justify-between mb-2 sm:mb-4">
                             <div className="flex items-center">
-                              <div className="p-2.5 rounded-lg bg-cyan-50 mr-3">
-                                <Bell className="h-5 w-5 text-primary" />
+                              <div className="p-1.5 sm:p-2.5 rounded-lg bg-cyan-50 mr-2 sm:mr-3">
+                                <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                               </div>
-                              <h4 className="text-base font-medium text-gray-800">Notification Preferences</h4>
+                              <h4 className="text-sm sm:text-base font-medium text-gray-800">Notification Preferences</h4>
                             </div>
                             
                         <Button 
-                              className="gap-1 h-8 bg-primary text-white hover:bg-white hover:text-cyan-500 hover:border hover:border-cyan-300 hover:shadow-md transition-all duration-200"
+                              className="gap-1 h-7 sm:h-8 bg-primary text-white hover:bg-white hover:text-cyan-500 hover:border hover:border-cyan-300 hover:shadow-md transition-all duration-200 text-xs px-2 sm:px-3"
                               onClick={() => setShowProfileSettings(true)}
                         >
-                              <Settings2 className="h-4 w-4" />
-                              <span className="hidden sm:inline">Settings</span>
+                              <Settings2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="hidden sm:inline text-xs">Settings</span>
                         </Button>
               </div>
                           
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                            <div className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm text-gray-700">Email Notifications</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-2 sm:mt-4">
+                            <div className="flex items-center justify-between bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 rounded-lg">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-500" />
+                                <span className="text-xs sm:text-sm text-gray-700">Email Notifications</span>
                               </div>
-                              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              <div className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${
                                 emailNotifications 
                                   ? "bg-green-100 text-green-800" 
                                   : "bg-gray-100 text-gray-600"
@@ -1320,12 +1320,12 @@ const ProfilePage = () => {
                               </div>
                             </div>
                             
-                            <div className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <BellRing className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm text-gray-700">Push Notifications</span>
+                            <div className="flex items-center justify-between bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 rounded-lg">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <BellRing className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-500" />
+                                <span className="text-xs sm:text-sm text-gray-700">Push Notifications</span>
                               </div>
-                              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              <div className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${
                                 appNotifications 
                                   ? "bg-green-100 text-green-800" 
                                   : "bg-gray-100 text-gray-600"
@@ -1342,23 +1342,23 @@ const ProfilePage = () => {
               )}
             </TabsContent>
             
-            <TabsContent value="notifications" className="p-6 sm:p-8">
-              <div className="space-y-6">
+            <TabsContent value="notifications" className="p-4 sm:p-6 md:p-8">
+              <div className="space-y-4 sm:space-y-6">
                   {/* Header with settings button */}
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-800">Notifications</h3>
+                  <div className="flex justify-between items-center mb-2 sm:mb-4">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-800">Notifications</h3>
                     <Button
                       onClick={() => setShowSettings(true)}
-                      className="gap-1 h-8 bg-primary text-white hover:bg-white hover:text-cyan-500 hover:border hover:border-cyan-300 hover:shadow-md transition-all duration-200"
+                      className="gap-1 h-7 sm:h-8 bg-primary text-white hover:bg-white hover:text-cyan-500 hover:border hover:border-cyan-300 hover:shadow-md transition-all duration-200 text-xs sm:text-sm px-2 sm:px-3 py-1"
                       size="sm"
                     >
-                      <Settings2 className="h-4 w-4" />
+                      <Settings2 className="h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="hidden sm:inline">Settings</span>
                     </Button>
                 </div>
                 
                   {/* Simple Notification Cards */}
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <NotificationDisplay />
                   </div>
 
@@ -1373,31 +1373,31 @@ const ProfilePage = () => {
                       
                       {/* Dialog */}
                       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-xl shadow-xl z-50 transform transition-all duration-300">
-                        <div className="p-4 border-b flex justify-between items-center">
-                          <h3 className="text-lg font-medium">Settings</h3>
+                        <div className="p-3 sm:p-4 border-b flex justify-between items-center">
+                          <h3 className="text-base sm:text-lg font-medium">Settings</h3>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => setShowSettings(false)}
-                            className="h-8 w-8 rounded-full"
+                              className="h-7 w-7 sm:h-8 sm:w-8 rounded-full"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                           </div>
 
-                        <div className="p-4 space-y-3">
+                        <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                           {/* Email Toggle */}
-                          <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium text-gray-900">Email</span>
+                          <div className="flex items-center justify-between py-1 sm:py-1.5 border-b border-gray-100">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-500" />
+                              <span className="text-sm sm:text-base font-medium text-gray-900">Email</span>
                             </div>
                             <Button 
                               variant={emailNotifications ? "default" : "outline"}
                               onClick={() => handleNotificationToggle('email')}
                               size="sm"
                               className={cn(
-                                "min-w-[60px] h-8 transition-colors duration-200", 
+                                "min-w-[50px] sm:min-w-[60px] h-7 sm:h-8 text-xs transition-colors duration-200", 
                                 emailNotifications 
                                   ? "bg-primary hover:bg-cyan-600" 
                                   : "hover:text-cyan-500 hover:border-cyan-500"
@@ -1408,17 +1408,17 @@ const ProfilePage = () => {
                           </div>
                   
                           {/* In-App Toggle */}
-                          <div className="flex items-center justify-between py-1.5">
-                            <div className="flex items-center gap-2">
-                              <Bell className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium text-gray-900">App</span>
+                          <div className="flex items-center justify-between py-1 sm:py-1.5">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-500" />
+                              <span className="text-sm sm:text-base font-medium text-gray-900">App</span>
                             </div>
                             <Button 
                               variant={appNotifications ? "default" : "outline"}
                               onClick={() => handleNotificationToggle('app')}
                               size="sm"
                               className={cn(
-                                "min-w-[60px] h-8 transition-colors duration-200", 
+                                "min-w-[50px] sm:min-w-[60px] h-7 sm:h-8 text-xs transition-colors duration-200", 
                                 appNotifications 
                                   ? "bg-primary hover:bg-cyan-600" 
                                   : "hover:text-cyan-500 hover:border-cyan-500"
@@ -1429,10 +1429,10 @@ const ProfilePage = () => {
                           </div>
                         </div>
                     
-                        <div className="p-3 bg-gray-50 rounded-b-xl flex justify-end">
+                        <div className="p-2 sm:p-3 bg-gray-50 rounded-b-xl flex justify-end">
                           <Button 
                             onClick={() => setShowSettings(false)}
-                            className="bg-primary hover:bg-cyan-600 transition-colors duration-200"
+                            className="bg-primary hover:bg-cyan-600 transition-colors duration-200 h-7 sm:h-8 text-xs sm:text-sm px-2.5 sm:px-3"
                             size="sm"
                           >
                             Done
@@ -1444,36 +1444,36 @@ const ProfilePage = () => {
               </div>
             </TabsContent>
             
-            <TabsContent value="appointments" className="p-6 sm:p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <TabsContent value="appointments" className="p-4 sm:p-6 md:p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                 {/* Appointments Section */}
                 <div className="bg-white shadow-md rounded-xl overflow-hidden border border-gray-100">
-                  <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-white to-primary/5">
-                    <h3 className="font-semibold text-lg text-gray-800 flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-primary" />
+                  <div className="p-3 sm:p-5 border-b border-gray-100 bg-gradient-to-r from-white to-primary/5">
+                    <h3 className="font-semibold text-base sm:text-lg text-gray-800 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                       Your Appointments
                     </h3>
                   </div>
                   
-                  <div className="p-5">
+                  <div className="p-3 sm:p-5">
                     {loadingAppointments ? (
-                      <div className="flex justify-center items-center py-12">
+                      <div className="flex justify-center items-center py-8 sm:py-12">
                         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                       </div>
                     ) : appointments.length === 0 ? (
-                      <div className="text-center py-12">
-                        <div className="mx-auto w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mb-5">
-                          <Calendar className="h-10 w-10 text-primary/60" />
+                      <div className="text-center py-8 sm:py-12">
+                        <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-primary/5 rounded-full flex items-center justify-center mb-4 sm:mb-5">
+                          <Calendar className="h-8 w-8 sm:h-10 sm:w-10 text-primary/60" />
                         </div>
-                        <h4 className="text-gray-900 font-medium mb-3">No Appointments Found</h4>
-                        <p className="text-gray-500 text-sm max-w-md mx-auto mb-7">
+                        <h4 className="text-gray-900 text-sm sm:text-base font-medium mb-2 sm:mb-3">No Appointments Found</h4>
+                        <p className="text-gray-500 text-xs sm:text-sm max-w-md mx-auto mb-5 sm:mb-7">
                           You don't have any appointments scheduled yet.
                         </p>
                         <Button
                           onClick={() => navigate('/appointments/new')}
-                          className="gap-2 px-6"
+                          className="gap-1 sm:gap-2 px-4 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm"
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                           <span>Book Appointment</span>
                         </Button>
                       </div>
@@ -1647,136 +1647,30 @@ const ProfilePage = () => {
                   {/* Add pagination component inside the card */}
                         {appointments.length > 0 && (
                     <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/80">
-                      <div className="flex justify-center items-center">
-                        <div className="pagination-Glass px-3 py-2 rounded-xl w-auto inline-flex items-center gap-3 shadow-sm bg-cyan-50/50 border border-cyan-200/50">
+                      <div className="flex justify-between items-center">
                           <Button
-                            variant="ghost"
+                          variant="outline"
                               size="sm"
                               onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1 || appointmentAnimating}
-                            className={cn(
-                              "h-9 w-9 p-0 rounded-full transition-all duration-300 hover:bg-white/60 hover:text-cyan-600 dark:hover:bg-slate-800/50",
-                              currentPage === 1 && "pointer-events-none opacity-50"
-                              )}
+                          className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
                             >
-                            <ArrowLeft className="h-5 w-5 text-cyan-500" />
-                            <span className="sr-only">Previous</span>
+                          <ArrowLeft className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                          <span>Previous</span>
                           </Button>
-                          
-                          {/* Dynamic Page Numbers */}
-                          {(() => {
-                            const totalPages = appointments.length;
-                            const pageNumbers = [];
-                            const maxVisiblePages = 5; // Maximum visible page buttons
-                            
-                            let startPage = 1;
-                            let endPage = totalPages;
-                            
-                            if (totalPages > maxVisiblePages) {
-                              // Calculate start and end page numbers
-                              const halfVisible = Math.floor(maxVisiblePages / 2);
-                              
-                              if (currentPage <= halfVisible + 1) {
-                                // Near the start
-                                endPage = maxVisiblePages;
-                              } else if (currentPage >= totalPages - halfVisible) {
-                                // Near the end
-                                startPage = totalPages - maxVisiblePages + 1;
-                              } else {
-                                // In the middle
-                                startPage = currentPage - halfVisible;
-                                endPage = currentPage + halfVisible;
-                              }
-                            }
-                            
-                            // Add first page button if not visible
-                            if (startPage > 1) {
-                              pageNumbers.push(
-                          <Button
-                                  key="first"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handlePageChange(1)}
-                                  disabled={appointmentAnimating}
-                                  className="h-8 w-8 p-0 rounded-full text-sm text-cyan-600 hover:bg-white/60 hover:text-cyan-700"
-                                >
-                                  1
-                                </Button>
-                              );
-                              
-                              // Add ellipsis if needed
-                              if (startPage > 2) {
-                                pageNumbers.push(
-                                  <span key="ellipsis-1" className="text-cyan-500">
-                                    ...
+                        <span className="text-xs sm:text-sm text-gray-600">
+                          {currentPage} of {appointments.length}
                                   </span>
-                                );
-                              }
-                            }
-                            
-                            // Add page number buttons
-                            for (let i = startPage; i <= endPage; i++) {
-                              pageNumbers.push(
                                 <Button
-                                  key={i}
-                                  variant={i === currentPage ? "default" : "ghost"}
-                                  size="sm"
-                                  onClick={() => handlePageChange(i)}
-                                  disabled={appointmentAnimating}
-                                  className={cn(
-                                    "h-8 w-8 p-0 rounded-full text-sm",
-                                    i === currentPage 
-                                      ? "bg-cyan-600 text-white hover:bg-cyan-700" 
-                                      : "text-cyan-600 hover:bg-white/60 hover:text-cyan-700"
-                                  )}
-                                >
-                                  {i}
-                                </Button>
-                              );
-                            }
-                            
-                            // Add last page button if not visible
-                            if (endPage < totalPages) {
-                              // Add ellipsis if needed
-                              if (endPage < totalPages - 1) {
-                                pageNumbers.push(
-                                  <span key="ellipsis-2" className="text-cyan-500">
-                                    ...
-                                  </span>
-                                );
-                              }
-                              
-                              pageNumbers.push(
-                                <Button
-                                  key="last"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handlePageChange(totalPages)}
-                                  disabled={appointmentAnimating}
-                                  className="h-8 w-8 p-0 rounded-full text-sm text-cyan-600 hover:bg-white/60 hover:text-cyan-700"
-                                >
-                                  {totalPages}
-                                </Button>
-                              );
-                            }
-                            
-                            return pageNumbers;
-                          })()}
-                          
-                          <Button
-                            variant="ghost"
+                          variant="outline"
                             size="sm"
                               onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === appointments.length || appointmentAnimating}
-                            className={cn(
-                              "h-9 w-9 p-0 rounded-full transition-all duration-300 hover:bg-white/60 hover:text-cyan-600 dark:hover:bg-slate-800/50",
-                              currentPage === appointments.length && "pointer-events-none opacity-50"
-                              )}
+                          className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
                             >
-                            <ArrowRight className="h-5 w-5 text-cyan-500" />
-                            <span className="sr-only">Next</span>
+                          <span>Next</span>
+                          <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
-                        </div>
                       </div>
                       </div>
                     )}
@@ -1784,33 +1678,40 @@ const ProfilePage = () => {
                 
                 {/* Consultations Section */}
                 <div className="bg-white shadow-md rounded-xl overflow-hidden border border-gray-100">
-                  <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-white to-primary/5">
-                    <h3 className="font-semibold text-lg text-gray-800 flex items-center gap-2">
-                      <Stethoscope className="h-5 w-5 text-primary" />
+                  <div className="p-3 sm:p-5 border-b border-gray-100 bg-gradient-to-r from-white to-primary/5">
+                    <h3 className="font-semibold text-base sm:text-lg text-gray-800 flex items-center gap-2">
+                      <Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                       Your Consultations
                     </h3>
                                 </div>
 
-                  <div className="p-5">
+                  <div className="p-3 sm:p-5">
                     {loadingConsultations ? (
-                      <div className="flex justify-center items-center py-12">
+                      <div className="flex justify-center items-center py-8 sm:py-12">
                         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                                         </div>
                     ) : consultations.length === 0 ? (
-                      <div className="text-center py-12">
-                        <div className="mx-auto w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mb-5">
-                          <Stethoscope className="h-10 w-10 text-primary/60" />
+                      <div className="text-center py-8 sm:py-12">
+                        <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-primary/5 rounded-full flex items-center justify-center mb-4 sm:mb-5">
+                          <Stethoscope className="h-8 w-8 sm:h-10 sm:w-10 text-primary/60" />
                                       </div>
-                        <h4 className="text-gray-900 font-medium mb-3">No Consultations Found</h4>
-                        <p className="text-gray-500 text-sm max-w-md mx-auto">
-                          You don't have any consultations yet.
+                        <h4 className="text-gray-900 text-sm sm:text-base font-medium mb-2 sm:mb-3">No Consultations Found</h4>
+                        <p className="text-gray-500 text-xs sm:text-sm max-w-md mx-auto mb-5 sm:mb-7">
+                          You haven't scheduled any consultations yet.
                         </p>
+                        <Button
+                          onClick={() => navigate('/consultation')}
+                          className="gap-1 sm:gap-2 px-4 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm"
+                        >
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span>Book Consultation</span>
+                        </Button>
                                     </div>
                     ) : (
                       <div className="relative">
                         {/* Current consultation with animation */}
                         <div className={cn(
-                          "transition-all duration-300 ease-in-out min-h-[460px]",
+                          "transition-all duration-300 ease-in-out min-h-[360px] sm:min-h-[460px]",
                           consultationAnimating && consultationAnimationDirection === 'next' 
                             ? 'animate-slide-out-left' 
                             : consultationAnimating && consultationAnimationDirection === 'prev'
@@ -1822,260 +1723,58 @@ const ProfilePage = () => {
                             : ''
                         )}>
                           {consultations[currentConsultationPage - 1] && (
-                            <div className="bg-white rounded-lg shadow-sm border relative overflow-hidden min-h-[460px]">
-                              {/* Status Strip */}
-                              <div 
-                                className={cn(
-                                  "h-2 w-full",
-                                  consultations[currentConsultationPage - 1].status === "completed" && "bg-green-500",
-                                  consultations[currentConsultationPage - 1].status === "in_progress" && "bg-cyan-500",
-                                  consultations[currentConsultationPage - 1].status === "pending" && "bg-yellow-400",
-                                  consultations[currentConsultationPage - 1].status === "cancelled" && "bg-red-500",
-                                  !consultationAnimating && "animate-pulse-soft"
-                                )}
-                              />
-                              
-                              <div className="p-5">
-                                {/* Status Badge and Doctor Information */}
-                                <div className={`flex justify-between items-start mb-5 ${!consultationAnimating ? 'animate-fade-in animate-delay-100' : ''}`}>
-                                  <Badge 
-                                    variant={
-                                      consultations[currentConsultationPage - 1].status === "completed" ? "success" :
-                                      consultations[currentConsultationPage - 1].status === "in_progress" ? "default" :
-                                      consultations[currentConsultationPage - 1].status === "pending" ? "outline" :
-                                      consultations[currentConsultationPage - 1].status === "cancelled" ? "destructive" :
-                                      "secondary"
-                                    }
-                                    className={cn(
-                                      "capitalize px-3 py-1",
-                                      consultations[currentConsultationPage - 1].status === "cancelled" && "bg-red-500 hover:bg-red-500"
-                                    )}
-                                  >
-                                    {consultations[currentConsultationPage - 1].status?.replace('_', ' ')}
-                                  </Badge>
-                                  <span className="text-sm font-medium text-cyan-500">
-                                    Medical Consultation
-                                  </span>
-                              </div>
-
-                                {/* Doctor Information */}
-                                <div className={`mb-6 ${!consultationAnimating ? 'animate-fade-in animate-delay-100' : ''}`}>
-                                  <div className="flex items-center gap-2 mb-3 text-cyan-500">
-                                    <Stethoscope className="h-4 w-4" />
-                                    <div className="text-xs font-medium uppercase">Doctor Information</div>
-                                  </div>
-                                  <div className="space-y-3 p-4 bg-gray-50/80 rounded-lg border border-gray-100">
-                                    <div className="flex items-center gap-2">
-                                      <User className="h-3.5 w-3.5 text-gray-500" />
-                                      <span className="text-sm text-gray-700">
-                                        {consultations[currentConsultationPage - 1].doctor_name || 'Unknown Doctor'}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Phone className="h-3.5 w-3.5 text-gray-500" />
-                                      <span className="text-sm text-gray-700">
-                                        {consultations[currentConsultationPage - 1].doctor_phone || 'No phone number'}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Consultation Details */}
-                                <div className={`mb-6 ${!consultationAnimating ? 'animate-fade-in animate-delay-200' : ''}`}>
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <FileText className="h-4 w-4 text-primary" />
-                                    <div className="text-xs font-medium text-gray-500 uppercase">Consultation Details</div>
-                                  </div>
-                                  <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/10">
-                                    <div className="flex items-center gap-2">
-                                      <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                                      <span className="text-sm text-gray-700 font-medium">
-                                        {consultations[currentConsultationPage - 1].created_at ? 
-                                          formatDate(consultations[currentConsultationPage - 1].created_at) : 
-                                          'Date not available'}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Eye className="h-3.5 w-3.5 text-gray-500" />
-                                      <span className="text-sm text-gray-700 font-medium">
-                                        {consultations[currentConsultationPage - 1].consultation_type || 'General Consultation'}
-                                      </span>
-                                    </div>
-                                      </div>
-                                </div>
-
-                                {/* Notes */}
-                                <div className={`mb-4 ${!consultationAnimating ? 'animate-fade-in animate-delay-300' : ''}`}>
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <FileText className="h-4 w-4 text-gray-500" />
-                                    <div className="text-xs font-medium text-gray-500 uppercase">Notes</div>
-                                  </div>
-                                  <div className="p-4 bg-gray-50/80 rounded-lg border border-gray-100 min-h-[80px]">
-                                    <p className="text-sm text-gray-700">
-                                      {consultations[currentConsultationPage - 1].notes || 'No notes provided for this consultation.'}
-                                    </p>
-                                  </div>
-                                </div>
+                            <div className="bg-white rounded-lg shadow-sm border relative overflow-hidden min-h-[360px] sm:min-h-[460px]">
+                              {/* Content for consultation card */}
+                              <div className="p-4">Consultation details</div>
 
                                 {/* Actions */}
                                 {consultations[currentConsultationPage - 1].status !== "cancelled" && 
                                  consultations[currentConsultationPage - 1].status !== "completed" && (
-                                <div className={`flex justify-end gap-3 mt-6 ${!consultationAnimating ? 'animate-fade-in animate-delay-300' : ''}`}>
+                                <div className="flex justify-end gap-3 p-4">
                                     <Button
                                       variant="destructive"
                                       size="sm"
-                                      className="h-10 px-5 transition-all duration-200 hover:scale-105 hover:bg-red-600 hover:shadow-md"
+                                    className="h-8 sm:h-10 px-3 sm:px-5 transition-all duration-200 text-xs sm:text-sm"
                                       onClick={() => handleCancelConsultation(consultations[currentConsultationPage - 1].id)}
                                     >
-                                      <X className="h-3.5 w-3.5 mr-2" />
+                                    <X className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 sm:mr-2" />
                                       Cancel
                                     </Button>
                                   </div>
                                   )}
-                                </div>
-                                  </div>
-                                  )}
-                                </div>
                             </div>
                           )}
                         </div>
 
-                  {/* Add pagination component inside the card */}
-                        {consultations.length > 0 && (
-                    <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/80">
-                      <div className="flex justify-center items-center">
-                        <div className="pagination-Glass px-3 py-2 rounded-xl w-auto inline-flex items-center gap-3 shadow-sm bg-cyan-50/50 border border-cyan-200/50">
+                        {/* Consultation pagination controls */}
+                        <div className="flex justify-between items-center mt-4 sm:mt-6">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                               size="sm"
                               onClick={() => handleConsultationPageChange(currentConsultationPage - 1)}
-                            disabled={currentConsultationPage === 1 || consultationAnimating}
-                            className={cn(
-                              "h-9 w-9 p-0 rounded-full transition-all duration-300 hover:bg-white/60 hover:text-cyan-600 dark:hover:bg-slate-800/50",
-                              currentConsultationPage === 1 && "pointer-events-none opacity-50"
-                              )}
-                            >
-                            <ArrowLeft className="h-5 w-5 text-cyan-500" />
-                            <span className="sr-only">Previous</span>
+                            disabled={currentConsultationPage === 1}
+                            className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                          >
+                            <ArrowLeft className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                            <span>Previous</span>
                           </Button>
-                          
-                          {/* Dynamic Page Numbers */}
-                          {(() => {
-                            const totalPages = consultations.length;
-                            const pageNumbers = [];
-                            const maxVisiblePages = 5; // Maximum visible page buttons
-                            
-                            let startPage = 1;
-                            let endPage = totalPages;
-                            
-                            if (totalPages > maxVisiblePages) {
-                              // Calculate start and end page numbers
-                              const halfVisible = Math.floor(maxVisiblePages / 2);
-                              
-                              if (currentConsultationPage <= halfVisible + 1) {
-                                // Near the start
-                                endPage = maxVisiblePages;
-                              } else if (currentConsultationPage >= totalPages - halfVisible) {
-                                // Near the end
-                                startPage = totalPages - maxVisiblePages + 1;
-                              } else {
-                                // In the middle
-                                startPage = currentConsultationPage - halfVisible;
-                                endPage = currentConsultationPage + halfVisible;
-                              }
-                            }
-                            
-                            // Add first page button if not visible
-                            if (startPage > 1) {
-                              pageNumbers.push(
-                          <Button
-                                  key="first"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleConsultationPageChange(1)}
-                                  disabled={consultationAnimating}
-                                  className="h-8 w-8 p-0 rounded-full text-sm text-cyan-600 hover:bg-white/60 hover:text-cyan-700"
-                                >
-                                  1
-                                </Button>
-                              );
-                              
-                              // Add ellipsis if needed
-                              if (startPage > 2) {
-                                pageNumbers.push(
-                                  <span key="ellipsis-1" className="text-cyan-500">
-                                    ...
+                          <span className="text-xs sm:text-sm text-gray-600">
+                            {currentConsultationPage} of {consultations.length}
                                   </span>
-                                );
-                              }
-                            }
-                            
-                            // Add page number buttons
-                            for (let i = startPage; i <= endPage; i++) {
-                              pageNumbers.push(
                                 <Button
-                                  key={i}
-                                  variant={i === currentConsultationPage ? "default" : "ghost"}
-                                  size="sm"
-                                  onClick={() => handleConsultationPageChange(i)}
-                                  disabled={consultationAnimating}
-                                  className={cn(
-                                    "h-8 w-8 p-0 rounded-full text-sm",
-                                    i === currentConsultationPage 
-                                      ? "bg-cyan-600 text-white hover:bg-cyan-700" 
-                                      : "text-cyan-600 hover:bg-white/60 hover:text-cyan-700"
-                                  )}
-                                >
-                                  {i}
-                                </Button>
-                              );
-                            }
-                            
-                            // Add last page button if not visible
-                            if (endPage < totalPages) {
-                              // Add ellipsis if needed
-                              if (endPage < totalPages - 1) {
-                                pageNumbers.push(
-                                  <span key="ellipsis-2" className="text-cyan-500">
-                                    ...
-                                  </span>
-                                );
-                              }
-                              
-                              pageNumbers.push(
-                                <Button
-                                  key="last"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleConsultationPageChange(totalPages)}
-                                  disabled={consultationAnimating}
-                                  className="h-8 w-8 p-0 rounded-full text-sm text-cyan-600 hover:bg-white/60 hover:text-cyan-700"
-                                >
-                                  {totalPages}
-                                </Button>
-                              );
-                            }
-                            
-                            return pageNumbers;
-                          })()}
-                          
-                          <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                               onClick={() => handleConsultationPageChange(currentConsultationPage + 1)}
-                            disabled={currentConsultationPage === consultations.length || consultationAnimating}
-                        className={cn(
-                              "h-9 w-9 p-0 rounded-full transition-all duration-300 hover:bg-white/60 hover:text-cyan-600 dark:hover:bg-slate-800/50",
-                              currentConsultationPage === consultations.length && "pointer-events-none opacity-50"
-                              )}
-                            >
-                            <ArrowRight className="h-5 w-5 text-cyan-500" />
-                            <span className="sr-only">Next</span>
+                            disabled={currentConsultationPage === consultations.length}
+                            className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                          >
+                            <span>Next</span>
+                            <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
-                        </div>
                       </div>
                       </div>
                     )}
+                  </div>
                   </div>
                 </div>
               </TabsContent>
@@ -2122,17 +1821,17 @@ const ProfilePage = () => {
 
               <div className="p-4 space-y-3">
                 {/* Email Toggle */}
-                <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    <span className="font-medium text-gray-900">Email</span>
+                <div className="flex items-center justify-between py-1 sm:py-1.5 border-b border-gray-100">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-500" />
+                    <span className="text-sm sm:text-base font-medium text-gray-900">Email</span>
                   </div>
                           <Button
                     variant={emailNotifications ? "default" : "outline"}
                     onClick={() => handleNotificationToggle('email')}
                     size="sm"
                                                       className={cn(
-                      "min-w-[60px] h-8 transition-colors duration-200", 
+                      "min-w-[50px] sm:min-w-[60px] h-7 sm:h-8 text-xs transition-colors duration-200", 
                       emailNotifications 
                         ? "bg-primary hover:bg-cyan-600" 
                         : "hover:text-cyan-500 hover:border-cyan-500"
@@ -2143,17 +1842,17 @@ const ProfilePage = () => {
                                               </div>
                   
                           {/* In-App Toggle */}
-                          <div className="flex items-center justify-between py-1.5">
-                            <div className="flex items-center gap-2">
-                              <Bell className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium text-gray-900">App</span>
+                          <div className="flex items-center justify-between py-1 sm:py-1.5">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-500" />
+                              <span className="text-sm sm:text-base font-medium text-gray-900">App</span>
                             </div>
                                                     <Button
                               variant={appNotifications ? "default" : "outline"}
                               onClick={() => handleNotificationToggle('app')}
                                       size="sm"
                                                       className={cn(
-                      "min-w-[60px] h-8 transition-colors duration-200", 
+                      "min-w-[50px] sm:min-w-[60px] h-7 sm:h-8 text-xs transition-colors duration-200", 
                       appNotifications 
                         ? "bg-primary hover:bg-cyan-600" 
                         : "hover:text-cyan-500 hover:border-cyan-500"
@@ -2164,10 +1863,10 @@ const ProfilePage = () => {
                                                 </div>
                                               </div>
 
-              <div className="p-3 bg-gray-50 rounded-b-xl flex justify-end">
+              <div className="p-2 sm:p-3 bg-gray-50 rounded-b-xl flex justify-end">
                           <Button
                   onClick={() => setShowProfileSettings(false)}
-                  className="bg-primary hover:bg-cyan-600 transition-colors duration-200"
+                  className="bg-primary hover:bg-cyan-600 transition-colors duration-200 h-7 sm:h-8 text-xs sm:text-sm px-2.5 sm:px-3"
                             size="sm"
                 >
                   Done

@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
-import PaginationGlass from '@/components/PaginationGlass';
 
 const scanAnimation = keyframes`
   0% { top: 0; }
@@ -352,71 +351,74 @@ const ConsultationPage = () => {
             {/* Step 1: User Information */}
             {currentStep === 0 && (
               <div className="animate-fade-in">
-                <h3 className="text-2xl font-bold gradient-text mb-6 flex items-center">
-                  <User className="mr-2 h-6 w-6" />Your Information
+                <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-4 sm:mb-6 flex items-center">
+                  <User className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />Your Information
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <User className="h-4 w-4 text-primary" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
+                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                       First Name
                     </label>
                     <Input
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className={cn(errors.firstName ? "border-red-500" : "")}
+                      className={cn(errors.firstName ? "border-red-500" : "", "h-9 sm:h-10 text-sm")}
                       placeholder="Enter your first name"
                     />
-                    {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName}</p>}
+                    {errors.firstName && <p className="text-red-500 text-xs sm:text-sm">{errors.firstName}</p>}
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <User className="h-4 w-4 text-primary" />
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
+                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                       Last Name
                     </label>
                     <Input
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className={cn(errors.lastName ? "border-red-500" : "")}
+                      className={cn(errors.lastName ? "border-red-500" : "", "h-9 sm:h-10 text-sm")}
                       placeholder="Enter your last name"
                     />
-                    {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName}</p>}
+                    {errors.lastName && <p className="text-red-500 text-xs sm:text-sm">{errors.lastName}</p>}
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-primary" />
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
+                      <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                       Email
                     </label>
                     <Input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className={cn(errors.email ? "border-red-500" : "")}
+                      className={cn(errors.email ? "border-red-500" : "", "h-9 sm:h-10 text-sm")}
                       placeholder="Enter your email"
                     />
-                    {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+                    {errors.email && <p className="text-red-500 text-xs sm:text-sm">{errors.email}</p>}
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-primary" />
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
+                      <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                       Phone
                     </label>
                     <Input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className={cn(errors.phone ? "border-red-500" : "")}
+                      className={cn(errors.phone ? "border-red-500" : "", "h-9 sm:h-10 text-sm")}
                       placeholder="Enter your phone number"
                     />
-                    {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
+                    {errors.phone && <p className="text-red-500 text-xs sm:text-sm">{errors.phone}</p>}
                   </div>
                 </div>
 
-                <div className="flex justify-end mt-6">
-                  <Button className="disappear-button" onClick={handleNextStep}>
-                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                <div className="flex justify-end mt-4 sm:mt-6">
+                  <Button 
+                    className="disappear-button h-9 sm:h-10 text-xs sm:text-sm" 
+                    onClick={handleNextStep}
+                  >
+                    Continue <ArrowRight className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
               </div>
@@ -425,13 +427,13 @@ const ConsultationPage = () => {
             {/* Step 2: Scan Selection */}
             {currentStep === 1 && (
               <div className="animate-fade-in">
-                <h3 className="text-2xl font-bold gradient-text mb-6 flex items-center">
-                  <FileText className="mr-2 h-6 w-6" />Select Scan
+                <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-4 sm:mb-6 flex items-center">
+                  <FileText className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />Select Scan
                 </h3>
                 
                 {userScans.length > 0 ? (
                   <div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 py-4 sm:py-6">
                       {currentScans.map((scan) => {
                         const isAbnormal = 
                           scan.requires_consultation || 
@@ -453,10 +455,10 @@ const ConsultationPage = () => {
                               }`}
                           >
                             {/* Scan Visualization */}
-                            <div className="relative flex flex-col items-center justify-center h-40 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                            <div className="relative flex flex-col items-center justify-center h-36 sm:h-40 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                               {/* Scan ID Badge */}
                               <div className="absolute top-2 z-10">
-                                <span className="px-2 py-0.5 bg-white/90 rounded-full text-xs font-mono text-gray-600 shadow-sm border border-gray-100">
+                                <span className="px-1.5 sm:px-2 py-0.5 bg-white/90 rounded-full text-[10px] sm:text-xs font-mono text-gray-600 shadow-sm border border-gray-100">
                                   {String(scan.id).padStart(3, '0')}
                                 </span>
                               </div>
@@ -464,19 +466,19 @@ const ConsultationPage = () => {
                               {/* Status Indicator */}
                               <div className="relative">
                                 {/* Outer Circle */}
-                                <div className={`w-24 h-24 rounded-full ${
+                                <div className={`w-20 sm:w-24 h-20 sm:h-24 rounded-full ${
                                   isAbnormal ? 'bg-red-100' : 'bg-green-100'
                                 } flex items-center justify-center`}>
                                   {/* Middle Circle */}
-                                  <div className={`w-20 h-20 rounded-full ${
+                                  <div className={`w-16 sm:w-20 h-16 sm:h-20 rounded-full ${
                                     isAbnormal ? 'bg-red-200' : 'bg-green-200'
                                   } flex items-center justify-center`}>
                                     {/* Inner Circle */}
-                                    <div className={`w-16 h-16 rounded-full ${
+                                    <div className={`w-12 sm:w-16 h-12 sm:h-16 rounded-full ${
                                       isAbnormal ? 'bg-red-300' : 'bg-green-300'
                                     } flex items-center justify-center`}>
                                       {/* Icon */}
-                                      <div className={`text-2xl ${
+                                      <div className={`text-xl sm:text-2xl ${
                                         isAbnormal ? 'text-red-500' : 'text-green-500'
                                       }`}>
                                         {isAbnormal ? '×' : '✓'}
@@ -488,21 +490,21 @@ const ConsultationPage = () => {
 
                               {/* Confidence Score */}
                               <div className="absolute bottom-2">
-                                <span className="px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                                <span className="px-1.5 sm:px-2 py-0.5 bg-gray-100 rounded-full text-[10px] sm:text-xs font-medium text-gray-600">
                                   {Math.round(scan.confidence_score * 100)}% confidence
                                 </span>
                               </div>
 
                               {/* Corner Accents */}
-                              <div className="absolute top-1 left-1 w-6 h-6 border-t-2 border-l-2 border-gray-200 rounded-tl-lg"></div>
-                              <div className="absolute top-1 right-1 w-6 h-6 border-t-2 border-r-2 border-gray-200 rounded-tr-lg"></div>
-                              <div className="absolute bottom-1 left-1 w-6 h-6 border-b-2 border-l-2 border-gray-200 rounded-bl-lg"></div>
-                              <div className="absolute bottom-1 right-1 w-6 h-6 border-b-2 border-r-2 border-gray-200 rounded-br-lg"></div>
+                              <div className="absolute top-1 left-1 w-5 h-5 sm:w-6 sm:h-6 border-t-2 border-l-2 border-gray-200 rounded-tl-lg"></div>
+                              <div className="absolute top-1 right-1 w-5 h-5 sm:w-6 sm:h-6 border-t-2 border-r-2 border-gray-200 rounded-tr-lg"></div>
+                              <div className="absolute bottom-1 left-1 w-5 h-5 sm:w-6 sm:h-6 border-b-2 border-l-2 border-gray-200 rounded-bl-lg"></div>
+                              <div className="absolute bottom-1 right-1 w-5 h-5 sm:w-6 sm:h-6 border-b-2 border-r-2 border-gray-200 rounded-br-lg"></div>
                             </div>
 
-                            <div className="p-3 space-y-2 relative z-10 transition-colors duration-300 group-hover:bg-gray-50">
-                              <p className="text-sm flex items-center gap-2">
-                                <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <div className="p-2 sm:p-3 space-y-1.5 sm:space-y-2 relative z-10 transition-colors duration-300 group-hover:bg-gray-50">
+                              <p className="text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2">
+                                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
@@ -514,9 +516,9 @@ const ConsultationPage = () => {
                               </p>
                               
                               {scan.result && (
-                                <div className="text-sm flex items-start gap-2">
+                                <div className="text-xs sm:text-sm flex items-start gap-1.5 sm:gap-2">
                                   <svg 
-                                    className={`w-4 h-4 mt-0.5 ${isAbnormal ? 'text-red-500' : 'text-gray-400'}`} 
+                                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 ${isAbnormal ? 'text-red-500' : 'text-gray-400'}`} 
                                     viewBox="0 0 24 24" 
                                     fill="none" 
                                     stroke="currentColor" 
@@ -537,10 +539,10 @@ const ConsultationPage = () => {
                                 </div>
                               )}
 
-                              <div className={`text-sm font-medium flex items-center gap-2 ${
+                              <div className={`text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 ${
                                 isAbnormal ? 'text-red-600' : 'text-green-600'
                               }`}>
-                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   {isAbnormal ? (
                                     <path
                                       strokeLinecap="round"
@@ -560,8 +562,8 @@ const ConsultationPage = () => {
                             </div>
 
                             {selectedScan?.id === scan.id && (
-                              <div className="absolute top-2 right-2 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-sm z-20">
-                                <CheckCircle className="w-4 h-4" />
+                              <div className="absolute top-2 right-2 w-5 h-5 sm:w-6 sm:h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-sm z-20">
+                                <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               </div>
                             )}
                           </div>
@@ -569,19 +571,41 @@ const ConsultationPage = () => {
                       })}
                     </div>
                     
-                    {/* Replace the existing pagination with PaginationGlass */}
-                    <PaginationGlass 
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={handlePageChange}
-                    />
+                    {/* Replace the PaginationGlass with the simpler pagination style */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-between items-center mt-4 sm:mt-6">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                        >
+                          <ArrowLeft className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                          <span>Previous</span>
+                        </Button>
+                        <span className="text-xs sm:text-sm text-gray-600">
+                          {currentPage} of {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                        >
+                          <span>Next</span>
+                          <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-gray-500">No scans found. Please upload a scan first.</p>
+                  <div className="text-center py-6 sm:py-8">
+                    <AlertCircle className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
+                    <p className="mt-2 text-gray-500 text-xs sm:text-sm">No scans found. Please upload a scan first.</p>
                     <Button
-                      className="mt-4"
+                      className="mt-3 sm:mt-4 h-9 sm:h-10 text-xs sm:text-sm"
                       onClick={() => navigate('/scan')}
                     >
                       Upload New Scan
@@ -589,20 +613,20 @@ const ConsultationPage = () => {
                   </div>
                 )}
 
-                <div className="flex justify-between mt-6">
+                <div className="flex justify-between mt-4 sm:mt-6">
                   <Button 
                     variant="outline" 
-                    className="border-primary text-primary hover:bg-primary/10"
+                    className="border-primary text-primary hover:bg-primary/10 h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4"
                     onClick={handlePrevStep}
                   >
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                    <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Back
                   </Button>
                   <Button 
-                    className="disappear-button" 
+                    className="disappear-button h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4" 
                     onClick={handleNextStep}
                     disabled={!selectedScan}
                   >
-                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                    Continue <ArrowRight className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
               </div>
@@ -683,13 +707,33 @@ const ConsultationPage = () => {
                       ))}
                     </div>
                     
-                    {/* Replace doctor pagination with PaginationGlass */}
-                    {doctors.length > doctorsPerPage && (
-                      <PaginationGlass 
-                        currentPage={currentDoctorPage}
-                        totalPages={totalDoctorPages}
-                        onPageChange={handleDoctorPageChange}
-                      />
+                    {/* Replace doctor pagination with the simpler pagination style */}
+                    {totalDoctorPages > 1 && (
+                      <div className="flex justify-between items-center mt-4 sm:mt-6">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDoctorPageChange(currentDoctorPage - 1)}
+                          disabled={currentDoctorPage === 1}
+                          className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                        >
+                          <ArrowLeft className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                          <span>Previous</span>
+                        </Button>
+                        <span className="text-xs sm:text-sm text-gray-600">
+                          {currentDoctorPage} of {totalDoctorPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDoctorPageChange(currentDoctorPage + 1)}
+                          disabled={currentDoctorPage === totalDoctorPages}
+                          className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                        >
+                          <span>Next</span>
+                          <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                      </div>
                     )}
                   </>
                 ) : (
@@ -734,71 +778,69 @@ const ConsultationPage = () => {
             {/* Step 4: Confirmation */}
             {currentStep === 3 && (
               <div className="animate-fade-in">
-                <h3 className="text-2xl font-bold gradient-text mb-6 flex items-center">
-                  <CheckCircle className="mr-2 h-6 w-6" />Confirmation
+                <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-4 sm:mb-6 flex items-center">
+                  <CheckCircle className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />Confirmation
                 </h3>
-                <div className="bg-white p-6 rounded-xl shadow-sm mb-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-gray-500 text-sm">First Name</p>
-                      <p className="font-medium">{firstName}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-sm">Last Name</p>
-                      <p className="font-medium">{lastName}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-sm">Email</p>
-                      <p className="font-medium">{email}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-sm">Phone</p>
-                      <p className="font-medium">{phone}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-sm">Doctor</p>
-                      <p className="font-medium">
-                        {doctors.find(d => d.user_id === selectedDoctor)?.full_name || 'Not selected'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-sm">Consultation Date & Time</p>
-                      <p className="font-medium">
-                        {selectedDate && selectedTime ? 
-                          `${format(selectedDate, 'MMMM d, yyyy')} at ${selectedTime}` : 
-                          'Not selected'}
-                      </p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-gray-500 text-sm">Additional Information</p>
-                      <p className="font-medium">{description || 'None provided'}</p>
-                    </div>
-              {scanDetails && (
-                      <div className="col-span-2">
-                        <p className="text-gray-500 text-sm">Scan Details</p>
-                        <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm">
-                      <span className="font-medium">Result:</span> {scanDetails.result}
-                    </p>
-                          <p className="text-sm">
-                      <span className="font-medium">Confidence:</span> {scanDetails.confidence_score}%
-                    </p>
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm mb-4 sm:mb-6">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
+                      <p className="text-gray-500 text-xs sm:text-sm font-medium mb-1 sm:mb-2">Personal Information</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                        <div>
+                          <p className="text-gray-500 text-xs sm:text-sm">First Name</p>
+                          <p className="font-medium text-sm sm:text-base">{firstName}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 text-xs sm:text-sm">Last Name</p>
+                          <p className="font-medium text-sm sm:text-base">{lastName}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 text-xs sm:text-sm">Email</p>
+                          <p className="font-medium text-sm sm:text-base">{email}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 text-xs sm:text-sm">Phone</p>
+                          <p className="font-medium text-sm sm:text-base">{phone}</p>
                         </div>
                       </div>
-                    )}
+                    </div>
+
+                    <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
+                      <p className="text-gray-500 text-xs sm:text-sm font-medium mb-1 sm:mb-2">Appointment Details</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                        <div>
+                          <p className="text-gray-500 text-xs sm:text-sm">Doctor</p>
+                          <p className="font-medium text-sm sm:text-base">
+                            {doctors.find(d => d.user_id === selectedDoctor)?.full_name || 'Not selected'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 text-xs sm:text-sm">Consultation Date & Time</p>
+                          <p className="font-medium text-sm sm:text-base">
+                            {selectedDate && selectedTime ? 
+                              `${format(selectedDate, 'MMMM d, yyyy')} at ${selectedTime}` : 
+                              'Not selected'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     {selectedScan && (
-                      <div className="col-span-2">
-                        <p className="text-gray-500 text-sm">Selected Scan</p>
-                        <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm">
-                            <span className="font-medium">Scan ID:</span> #{selectedScan.id}
-                          </p>
-                          <p className="text-sm">
-                            <span className="font-medium">Upload Date:</span> {new Date(selectedScan.upload_date).toLocaleDateString()}
-                          </p>
-                          <p className="text-sm">
-                            <span className="font-medium">Status:</span> {
-                              (() => {
+                      <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
+                        <p className="text-gray-500 text-xs sm:text-sm font-medium mb-1 sm:mb-2">Selected Scan</p>
+                        <div className="space-y-1.5 sm:space-y-2">
+                          <div>
+                            <p className="text-gray-500 text-xs sm:text-sm">Scan ID</p>
+                            <p className="font-medium text-sm sm:text-base">#{selectedScan.id}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-xs sm:text-sm">Upload Date</p>
+                            <p className="font-medium text-sm sm:text-base">{new Date(selectedScan.upload_date).toLocaleDateString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-xs sm:text-sm">Status</p>
+                            <p className="font-medium text-sm sm:text-base">
+                              {(() => {
                                 const needsConsultation = selectedScan.requires_consultation || 
                                   selectedScan.result?.toLowerCase().includes('pneumonia') || 
                                   selectedScan.result?.toLowerCase().includes('abnormal') ||
@@ -809,44 +851,52 @@ const ConsultationPage = () => {
                                     {needsConsultation ? 'Consultation Required' : 'No Consultation Needed'}
                                   </span>
                                 );
-                              })()
-                            }
-                          </p>
-                          {selectedScan.confidence_score !== null && (
-                            <p className="text-sm">
-                              <span className="font-medium">Confidence Score:</span> {(selectedScan.confidence_score * 100).toFixed(1)}%
+                              })()}
                             </p>
+                          </div>
+                          {selectedScan.confidence_score !== null && (
+                            <div>
+                              <p className="text-gray-500 text-xs sm:text-sm">Confidence Score</p>
+                              <p className="font-medium text-sm sm:text-base">{(selectedScan.confidence_score * 100).toFixed(1)}%</p>
+                            </div>
                           )}
                           {selectedScan.result && (
-                            <p className="text-sm mt-2">
-                              <span className="font-medium">Analysis Result:</span><br />
-                              <span className={selectedScan.result.toLowerCase().includes('pneumonia') ? "text-red-600" : ""}>
+                            <div>
+                              <p className="text-gray-500 text-xs sm:text-sm">Analysis Result</p>
+                              <p className={`font-medium text-sm sm:text-base ${selectedScan.result.toLowerCase().includes('pneumonia') ? "text-red-600" : ""}`}>
                                 {selectedScan.result}
-                              </span>
-                            </p>
+                              </p>
+                            </div>
                           )}
                         </div>
+                      </div>
+                    )}
+
+                    {description && (
+                      <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
+                        <p className="text-gray-500 text-xs sm:text-sm font-medium mb-1 sm:mb-2">Additional Information</p>
+                        <p className="font-medium text-sm sm:text-base">{description}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex justify-between">
+                <div className="flex justify-between mt-4 sm:mt-6">
                   <Button
                     variant="outline"
-                      className="border-primary text-primary hover:bg-primary/10"
-                      onClick={handlePrevStep}
+                    className="border-primary text-primary hover:bg-primary/10 h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4"
+                    onClick={handlePrevStep}
                   >
-                      <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                      <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Back
                   </Button>
                   <Button
-                    className="disappear-button" 
+                    className="disappear-button h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4" 
                     onClick={handleSubmit}
                     disabled={loading}
                   >
                     {loading ? (
-                      <span className="flex items-center gap-2">
-                        <span className="animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full"></span>
+                      <span className="flex items-center gap-1 sm:gap-2">
+                        <span className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-t-transparent border-white rounded-full"></span>
                         Processing...
                       </span>
                     ) : (

@@ -1699,14 +1699,14 @@ const ScanPage = () => {
                     // When user HAS scan results
                     <div className="w-full max-w-2xl mx-auto">
                       {/* X-ray API Images Section */}
-                      <div className="mt-8 mb-12">
-                        <div className="flex items-center justify-between mb-6">
-                          <h4 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                            <div className="h-8 w-8 bg-cyan-100 rounded-md flex items-center justify-center">
+                      <div className="mt-6 sm:mt-8 mb-8 sm:mb-12">
+                        <div className="flex items-center justify-between mb-4 sm:mb-6">
+                          <h4 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-1.5 sm:gap-2">
+                            <div className="h-6 w-6 sm:h-8 sm:w-8 bg-cyan-100 rounded-md flex items-center justify-center">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
+                                width="14"
+                                height="14"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
@@ -2042,82 +2042,82 @@ const ScanPage = () => {
               )}
             </TabsContent>
 
-            <TabsContent value="history" className="p-6 sm:p-8">
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 bg-white rounded-xl p-4 shadow-sm border border-gray-200/60">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                      <span className="bg-cyan-50 p-1.5 rounded-md">
-                        <History className="h-5 w-5 text-cyan-600" />
+            <TabsContent value="history" className="p-4 sm:p-6 md:p-8">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:justify-between sm:items-center bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200/60">
+                  <div className="flex flex-col">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
+                      <span className="bg-cyan-50 p-1 sm:p-1.5 rounded-md inline-flex items-center justify-center">
+                        <History className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-cyan-600" />
                       </span>
-                    Scan History
-                  </h2>
-                    <p className="mt-1.5 text-sm text-gray-500">
+                      <span>Scan History</span>
+                    </h2>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
                       View and manage your previous scan analyses
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <div className="flex items-center gap-2 self-start sm:self-auto w-full sm:w-auto mt-2 sm:mt-0">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="flex items-center gap-1.5 bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all">
+                        <Button variant="outline" className="flex items-center gap-1 bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all text-[10px] xs:text-xs w-full sm:w-auto justify-between sm:justify-start h-7 sm:h-8 px-2 sm:px-2.5 py-0.5 sm:py-1">
                           {sortOption === 'newest' || sortOption === 'oldest' 
-                            ? <History className="h-4 w-4 text-cyan-500" /> 
-                            : <FilterX className="h-4 w-4 text-cyan-500" />}
-                          <span className="text-gray-600">Sort by: </span>
-                          <span className="font-medium text-cyan-600">
+                            ? <History className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-cyan-500 flex-shrink-0" /> 
+                            : <FilterX className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-cyan-500 flex-shrink-0" />}
+                          <span className="text-gray-600 hidden xs:inline text-[10px] xs:text-xs">Sort by: </span>
+                          <span className="font-medium text-cyan-600 truncate text-[10px] xs:text-xs">
                             {sortOption === 'newest' && 'Newest first'}
                             {sortOption === 'oldest' && 'Oldest first'}
                             {sortOption === 'highest-id' && 'ID (high to low)'}
                             {sortOption === 'lowest-id' && 'ID (low to high)'}
                           </span>
-                          <SortDesc className="h-3.5 w-3.5 ml-1 text-gray-400" />
+                          <SortDesc className="h-2 w-2 sm:h-2.5 sm:w-2.5 ml-0.5 sm:ml-1 text-gray-400 flex-shrink-0" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 shadow-lg border border-gray-200 rounded-lg p-1 animate-in fade-in-80 zoom-in-95">
-                        <DropdownMenuLabel className="text-xs uppercase text-gray-500 tracking-wider">Sort Options</DropdownMenuLabel>
+                      <DropdownMenuContent align="end" className="w-40 sm:w-48 shadow-lg border border-gray-200 rounded-lg p-1 animate-in fade-in-80 zoom-in-95">
+                        <DropdownMenuLabel className="text-[10px] sm:text-xs uppercase text-gray-500 tracking-wider">Sort Options</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          className={`flex items-center gap-2 text-sm rounded-md transition-colors ${sortOption === 'newest' ? 'bg-cyan-50 text-cyan-700 font-medium' : 'hover:bg-gray-50'}`}
+                          className={`flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm rounded-md transition-colors ${sortOption === 'newest' ? 'bg-cyan-50 text-cyan-700 font-medium' : 'hover:bg-gray-50'}`}
                           onClick={() => handleSortChange('newest')}
                         >
-                          <SortDesc className="h-4 w-4" />
+                          <SortDesc className="h-3 w-3 sm:h-4 sm:w-4" />
                           Newest first
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          className={`flex items-center gap-2 text-sm rounded-md transition-colors ${sortOption === 'oldest' ? 'bg-cyan-50 text-cyan-700 font-medium' : 'hover:bg-gray-50'}`}
+                          className={`flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm rounded-md transition-colors ${sortOption === 'oldest' ? 'bg-cyan-50 text-cyan-700 font-medium' : 'hover:bg-gray-50'}`}
                           onClick={() => handleSortChange('oldest')}
                         >
-                          <SortAsc className="h-4 w-4" />
+                          <SortAsc className="h-3 w-3 sm:h-4 sm:w-4" />
                           Oldest first
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          className={`flex items-center gap-2 text-sm rounded-md transition-colors ${sortOption === 'highest-id' ? 'bg-cyan-50 text-cyan-700 font-medium' : 'hover:bg-gray-50'}`}
+                          className={`flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm rounded-md transition-colors ${sortOption === 'highest-id' ? 'bg-cyan-50 text-cyan-700 font-medium' : 'hover:bg-gray-50'}`}
                           onClick={() => handleSortChange('highest-id')}
                         >
-                          <SortDesc className="h-4 w-4" />
+                          <SortDesc className="h-3 w-3 sm:h-4 sm:w-4" />
                           ID (high to low)
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          className={`flex items-center gap-2 text-sm rounded-md transition-colors ${sortOption === 'lowest-id' ? 'bg-cyan-50 text-cyan-700 font-medium' : 'hover:bg-gray-50'}`}
+                          className={`flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm rounded-md transition-colors ${sortOption === 'lowest-id' ? 'bg-cyan-50 text-cyan-700 font-medium' : 'hover:bg-gray-50'}`}
                           onClick={() => handleSortChange('lowest-id')}
                         >
-                          <SortAsc className="h-4 w-4" />
+                          <SortAsc className="h-3 w-3 sm:h-4 sm:w-4" />
                           ID (low to high)
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  <Button 
-                    onClick={() => navigateToTab('quickscan')}
-                    className={cn(chopperButton)}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    New Scan
-                  </Button>
+                    <Button 
+                      onClick={() => navigateToTab('quickscan')}
+                      className={cn(chopperButton, "min-w-0 w-full sm:w-auto h-7 sm:h-8 text-[10px] xs:text-xs")}
+                    >
+                      <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                      <span className="truncate">New Scan</span>
+                    </Button>
                   </div>
                 </div>
 
-                <div className="grid gap-6">
+                <div className="grid gap-3 sm:gap-6">
                   {getCurrentPageScans().map((scan, index) => {
                     const isNormal = scan.result?.toLowerCase() === 'normal';
                     const confidence = scan.confidence_score ? (scan.confidence_score * 100).toFixed(1) : null;
@@ -2130,14 +2130,14 @@ const ScanPage = () => {
                     >
                       {/* Status indicator strip */}
                       <div className={cn(
-                        "absolute top-0 left-0 w-1.5 h-full group-hover:w-2 transition-all duration-300", 
+                        "absolute top-0 left-0 w-1 sm:w-1.5 h-full group-hover:w-1.5 sm:group-hover:w-2 transition-all duration-300", 
                         isNormal ? "bg-green-500" : "bg-red-500"
                       )} />
                       
                       <CardContent className="p-0">
-                        <div className="pl-5 pr-5 sm:pr-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-start gap-5 sm:gap-7 relative">
+                        <div className="pl-3 sm:pl-5 pr-3 sm:pr-5 py-3 sm:py-5 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5 md:gap-7 relative">
                           {/* Scan Image Preview */}
-                          <div className="flex-shrink-0 w-full sm:w-32 h-32 relative rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 shadow-md border border-gray-200/70 group-hover:shadow-lg transition-all duration-300">
+                          <div className="flex-shrink-0 w-full sm:w-24 md:w-32 h-24 sm:h-24 md:h-32 relative rounded-lg sm:rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 shadow-md border border-gray-200/70 group-hover:shadow-lg transition-all duration-300">
                             {scan.image ? (
                               <img 
                                 src={scan.image} 
@@ -2146,21 +2146,21 @@ const ScanPage = () => {
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                                <FileText className="w-8 h-8 text-gray-400 group-hover:text-cyan-400 transition-colors duration-300" />
+                                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 group-hover:text-cyan-400 transition-colors duration-300" />
                               </div>
                             )}
                           </div>
 
                           {/* Scan Details */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-start justify-between mb-4 gap-2">
+                            <div className="flex flex-wrap items-start justify-between mb-2 sm:mb-4 gap-1.5 sm:gap-2">
                               <div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-cyan-700 transition-colors duration-300">
+                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                  <h3 className="text-xs sm:text-sm md:text-base font-semibold text-gray-900 group-hover:text-cyan-700 transition-colors duration-300">
                                     <span className="text-gray-500 group-hover:text-gray-400 transition-colors duration-300">ScanID:</span> {scan.id}
                                   </h3>
                                   <Badge className={cn(
-                                    "px-2 sm:px-2.5 py-0.5 text-xs font-medium transition-all duration-300 group-hover:shadow-sm", 
+                                    "px-1.5 sm:px-2 sm:px-2.5 py-0.5 text-[10px] xs:text-xs font-medium transition-all duration-300 group-hover:shadow-sm", 
                                     getStatusColor(scan.result),
                                     scan.result?.toLowerCase() === 'completed' && "group-hover:bg-green-200",
                                     scan.result?.toLowerCase() === 'processing' && "group-hover:bg-yellow-200",
@@ -2169,15 +2169,15 @@ const ScanPage = () => {
                                     {scan.result}
                                   </Badge>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1.5 group-hover:text-gray-600 transition-colors duration-300">
-                                  <span className="inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-500 group-hover:text-cyan-600 transition-colors duration-300">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 sm:h-4 sm:w-4">
+                                <p className="text-[10px] xs:text-xs sm:text-xs text-gray-500 mt-1 sm:mt-1.5 flex items-center gap-1 sm:gap-1.5 group-hover:text-gray-600 transition-colors duration-300">
+                                  <span className="inline-block h-3 w-3 sm:h-3.5 sm:w-3.5 text-cyan-500 group-hover:text-cyan-600 transition-colors duration-300">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 sm:h-3.5 sm:w-3.5">
                                       <circle cx="12" cy="12" r="10"></circle>
                                       <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
                                   </span>
-                                  <span className="hidden sm:inline">{format(new Date(scan.upload_date), "MMMM d, yyyy 'at' h:mm a")}</span>
-                                  <span className="inline sm:hidden">{format(new Date(scan.upload_date), "MMM d, yyyy")}</span>
+                                  <span className="hidden xs:inline">{format(new Date(scan.upload_date), "MMMM d, yyyy 'at' h:mm a")}</span>
+                                  <span className="inline xs:hidden">{format(new Date(scan.upload_date), "MMM d, yyyy")}</span>
                                 </p>
                               </div>
                               
@@ -2185,10 +2185,10 @@ const ScanPage = () => {
                               {!isNormal && scan.result && (
                                 <Button
                                   onClick={() => navigate('/consultation')}
-                                  className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 border border-transparent hover:border-red-300 shadow-sm hover:shadow-md transition-all duration-300 text-xs font-medium px-2.5 py-1.5 rounded-full hover:-translate-y-0.5 active:translate-y-0 mt-0.5 sm:mt-0"
+                                  className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 border border-transparent hover:border-red-300 shadow-sm hover:shadow-md transition-all duration-300 text-[10px] xs:text-xs font-medium px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full hover:-translate-y-0.5 active:translate-y-0 mt-0 sm:mt-0.5"
                                 >
-                                  <span className="relative z-10 flex items-center gap-1.5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="consult-icon text-white transition-colors duration-300">
+                                  <span className="relative z-10 flex items-center gap-1 sm:gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="consult-icon text-white transition-colors duration-300">
                                       <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
                                       <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
                                     </svg>
@@ -2201,17 +2201,17 @@ const ScanPage = () => {
                             {/* Result Card */}
                             {scan.result && (
                               <div className={cn(
-                                "mt-3 sm:mt-4 rounded-xl p-4 sm:p-5 border transition-all duration-300 group-hover:shadow-md",
+                                "mt-2 sm:mt-3 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border transition-all duration-300 group-hover:shadow-md",
                                 isNormal
                                   ? "bg-gradient-to-br from-green-50/80 to-green-50/50 border-green-200 group-hover:from-green-50/90 group-hover:to-green-50/70 group-hover:border-green-300"
                                   : "bg-gradient-to-br from-red-50/80 to-red-50/50 border-red-200 group-hover:from-red-50/90 group-hover:to-red-50/70 group-hover:border-red-300"
                               )}>
-                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                  <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+                                  <div className="flex items-center gap-1.5 sm:gap-3">
                                     {isNormal ? (
                                       <div className="relative">
                                         <CheckCircle className={cn(
-                                          "w-5 h-5 sm:w-6 sm:h-6 z-10 relative",
+                                          "w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 z-10 relative",
                                           isNormal ? "text-green-500 group-hover:text-green-600" : "text-red-500 group-hover:text-red-600",
                                           "transition-colors duration-300"
                                         )} />
@@ -2219,13 +2219,13 @@ const ScanPage = () => {
                                       </div>
                                     ) : (
                                       <div className="relative">
-                                        <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 group-hover:text-red-600 transition-colors duration-300 z-10 relative" />
+                                        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-500 group-hover:text-red-600 transition-colors duration-300 z-10 relative" />
                                         <div className="absolute -inset-1 bg-red-400/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></div>
                                       </div>
                                     )}
                                     <div>
                                       <p className={cn(
-                                        "font-medium text-sm sm:text-base transition-colors duration-300",
+                                        "font-medium text-xs sm:text-sm md:text-base transition-colors duration-300",
                                         isNormal ? "text-green-700 group-hover:text-green-800" : "text-red-700 group-hover:text-red-800"
                                       )}>
                                         {isNormal ? "Normal Scan Result" : 
@@ -2234,7 +2234,7 @@ const ScanPage = () => {
                                          "Abnormality Detected"}
                                       </p>
                                       <p className={cn(
-                                        "text-xs mt-1 transition-colors duration-300",
+                                        "text-[10px] xs:text-xs mt-0.5 sm:mt-1 transition-colors duration-300",
                                         isNormal ? "text-green-600 group-hover:text-green-700" : "text-red-600 group-hover:text-red-700"
                                       )}>
                                         {isNormal 
