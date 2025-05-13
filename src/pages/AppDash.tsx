@@ -430,8 +430,8 @@ const AppDash = () => {
 
         {/* Search and Filters */}
         <Card className="neuro-card mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -444,21 +444,9 @@ const AppDash = () => {
                 </div>
               </div>
               
-              <div className="flex gap-4">
-                <Select value={selectedType} onValueChange={setSelectedType}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="consultation">Consultation</SelectItem>
-                    <SelectItem value="follow-up">Follow-up</SelectItem>
-                    <SelectItem value="emergency">Emergency</SelectItem>
-                  </SelectContent>
-                </Select>
-                
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -472,11 +460,11 @@ const AppDash = () => {
                 
                 <Button
                   variant="outline"
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-2"
                   onClick={() => setShowFilters(!showFilters)}
                 >
                   <Filter className="h-4 w-4" />
-                  Filters
+                  <span className="hidden sm:inline">Filters</span>
                   {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </Button>
               </div>
@@ -504,8 +492,8 @@ const AppDash = () => {
               <div className="grid gap-4">
                 {getCurrentAppointments().map((appointment) => (
                   <Card key={appointment.id} className="neuro-card hover:shadow-lg transition-all duration-300">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
                             <User className="h-6 w-6 text-primary" />
@@ -517,16 +505,16 @@ const AppDash = () => {
                             <p className="text-sm text-gray-500">{appointment.user.email}</p>
                           </div>
                         </div>
-                        <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(appointment.status)}`}>
+                        <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mt-3 sm:mt-0 self-start sm:self-auto ${getStatusColor(appointment.status)}`}>
                           {getStatusIcon(appointment.status)}
                           <span className="capitalize">{appointment.status}</span>
                         </div>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 bg-blue-50 rounded-full flex items-center justify-center">
+                          <div className="h-10 w-10 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
                             <Calendar className="h-5 w-5 text-blue-600" />
                           </div>
                           <div>
@@ -535,7 +523,7 @@ const AppDash = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 bg-purple-50 rounded-full flex items-center justify-center">
+                          <div className="h-10 w-10 bg-purple-50 rounded-full flex items-center justify-center shrink-0">
                             <Clock className="h-5 w-5 text-purple-600" />
                           </div>
                           <div>
@@ -544,7 +532,7 @@ const AppDash = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 bg-green-50 rounded-full flex items-center justify-center">
+                          <div className="h-10 w-10 bg-green-50 rounded-full flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-green-600">
                               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                             </svg>
@@ -556,19 +544,19 @@ const AppDash = () => {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2 justify-end">
+                      <div className="flex flex-wrap gap-2 justify-end">
                         {appointment.status === 'pending' && (
                           <>
                             <Button
                               variant="outline"
-                              className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
+                              className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 text-xs sm:text-sm"
                               onClick={() => handleStatusChange(appointment.id, 'confirmed')}
                             >
                               Accept
                             </Button>
                             <Button
                               variant="outline"
-                              className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                              className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200 text-xs sm:text-sm"
                               onClick={() => handleStatusChange(appointment.id, 'cancelled')}
                             >
                               Cancel
@@ -579,14 +567,14 @@ const AppDash = () => {
                           <>
                             <Button
                               variant="outline"
-                              className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
+                              className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 text-xs sm:text-sm"
                               onClick={() => handleStatusChange(appointment.id, 'completed')}
                             >
                               Complete
                             </Button>
                             <Button
                               variant="outline"
-                              className="bg-yellow-50 text-yellow-600 hover:bg-yellow-100 border-yellow-200"
+                              className="bg-yellow-50 text-yellow-600 hover:bg-yellow-100 border-yellow-200 text-xs sm:text-sm"
                               onClick={() => handleReschedule(appointment)}
                             >
                               Reschedule
@@ -596,14 +584,14 @@ const AppDash = () => {
                         {appointment.status === 'completed' && (
                           <Button
                             variant="outline"
-                            className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
+                            className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200 text-xs sm:text-sm"
                             onClick={() => {
                               setSelectedAppointmentForUpload(appointment);
                               setIsXRayUploadModalOpen(true);
                             }}
                           >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Send Result
+                            <Upload className="h-4 w-4 mr-1 sm:mr-2" />
+                            <span>Send Result</span>
                           </Button>
                         )}
                       </div>
@@ -702,31 +690,33 @@ const AppDash = () => {
 
       {/* Reschedule Dialog */}
       <Dialog open={isRescheduleDialogOpen} onOpenChange={setRescheduleDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reschedule Appointment</DialogTitle>
+        <DialogContent className="w-[90vw] max-w-md mx-auto my-auto fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl sm:rounded-lg p-3 sm:p-6 max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="pb-1 sm:pb-2">
+            <DialogTitle className="text-base sm:text-lg">Reschedule Appointment</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-2 py-1 sm:py-2 overflow-y-auto pr-1 -mr-1">
             {selectedAppointment && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-500">Patient: {selectedAppointment.user.first_name} {selectedAppointment.user.last_name}</p>
-                <p className="text-sm text-gray-500">Current date: {formatAppointmentDate(selectedAppointment.date_time, 'PPP')}</p>
-                <p className="text-sm text-gray-500">Current time: {formatTime12Hour(selectedAppointment.date_time)}</p>
+              <div className="mb-1 sm:mb-2 p-2 sm:p-3 bg-gray-50 rounded-xl">
+                <p className="text-xs sm:text-sm text-gray-500">Patient: {selectedAppointment.user.first_name} {selectedAppointment.user.last_name}</p>
+                <p className="text-xs sm:text-sm text-gray-500">Current date: {formatAppointmentDate(selectedAppointment.date_time, 'PPP')}</p>
+                <p className="text-xs sm:text-sm text-gray-500">Current time: {formatTime12Hour(selectedAppointment.date_time)}</p>
               </div>
             )}
-            <div className="grid gap-2">
-              <Label htmlFor="date">Select new date</Label>
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateChange}
-                className="rounded-md border"
-                disabled={(date) => date < new Date()}
-              />
+            <div className="grid gap-1">
+              <Label htmlFor="date" className="text-xs sm:text-sm">Select new date</Label>
+              <div className="w-full overflow-hidden">
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateChange}
+                  className="rounded-xl border mx-auto scale-[0.85] sm:scale-90 origin-top"
+                  disabled={(date) => date < new Date()}
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="time">Select new time</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[200px] overflow-y-auto bg-blue-50/30 p-3 rounded-xl">
+            <div className="grid gap-1">
+              <Label htmlFor="time" className="text-xs sm:text-sm">Select new time</Label>
+              <div className="grid grid-cols-3 gap-1 sm:gap-2 max-h-[120px] overflow-y-auto bg-blue-50/30 p-2 rounded-xl">
                 {timeSlots.map((time, index) => {
                   // Check if this time slot is taken
                   const isSlotTaken = takenTimeSlots.includes(time) && 
@@ -739,7 +729,7 @@ const AppDash = () => {
                   <div
                     key={index}
                       onClick={() => !isSlotTaken && setSelectedTime(time)}
-                      className={`relative p-3 border-2 rounded-xl transition-all ${
+                      className={`relative p-1 sm:p-2 border border-2 rounded-lg sm:rounded-xl transition-all ${
                         isSlotTaken 
                           ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' 
                           : selectedTime === time 
@@ -747,15 +737,15 @@ const AppDash = () => {
                             : 'border-primary bg-white hover:bg-blue-50 hover:-translate-y-1 cursor-pointer'
                       }`}
                   >
-                    <div className="text-center font-medium">{formatTimeSlot(time)}</div>
+                    <div className="text-center text-[10px] sm:text-xs font-medium">{formatTimeSlot(time)}</div>
                       {selectedTime === time && !isSlotTaken && (
-                      <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow">
-                        <CheckCircle className="h-4 w-4 text-primary" />
+                      <div className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 bg-white rounded-full p-0.5 shadow">
+                        <CheckCircle className="h-2 w-2 sm:h-3 sm:w-3 text-primary" />
                       </div>
                     )}
                       {isSlotTaken && (
-                        <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow">
-                          <Lock className="h-4 w-4 text-gray-400" />
+                        <div className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 bg-white rounded-full p-0.5 shadow">
+                          <Lock className="h-2 w-2 sm:h-3 sm:w-3 text-gray-400" />
                         </div>
                       )}
                   </div>
@@ -764,13 +754,14 @@ const AppDash = () => {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-1 sm:gap-2 mt-2 pt-1 border-t">
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" className="w-full sm:w-auto rounded-xl text-xs py-1 h-7 sm:h-8">Cancel</Button>
             </DialogClose>
             <Button 
               onClick={handleRescheduleSubmit} 
               disabled={!selectedDate || !selectedTime || isRescheduling}
+              className="w-full sm:w-auto rounded-xl text-xs py-1 h-7 sm:h-8"
             >
               {isRescheduling ? 'Rescheduling...' : 'Reschedule'}
             </Button>

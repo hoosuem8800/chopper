@@ -120,45 +120,45 @@ export const XRayUploadModal: React.FC<XRayUploadModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="w-[92vw] max-w-md mx-auto my-auto fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl sm:rounded-lg p-3 sm:p-6">
+        <DialogHeader className="pb-2 sm:pb-4">
           <DialogTitle>Upload X-Ray Result</DialogTitle>
         </DialogHeader>
 
         {/* Patient Information */}
-        <div className="space-y-4">
-          <div className="flex items-center space-x-4 p-4 bg-muted rounded-lg">
-            <Avatar>
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-center space-x-3 p-2 sm:p-4 bg-muted rounded-xl">
+            <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
               <AvatarImage src={patientData.profile_picture} />
               <AvatarFallback>
                 {patientData.first_name[0]}{patientData.last_name[0]}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h4 className="text-sm font-medium">Patient</h4>
-              <p className="text-sm">
+            <div className="min-w-0 flex-1">
+              <h4 className="text-xs sm:text-sm font-medium">Patient</h4>
+              <p className="text-xs sm:text-sm truncate">
                 {patientData.first_name} {patientData.last_name}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {patientData.email}
               </p>
             </div>
           </div>
 
           {/* Assistant Information */}
-          <div className="flex items-center space-x-4 p-4 bg-muted rounded-lg">
-            <Avatar>
+          <div className="flex items-center space-x-3 p-2 sm:p-4 bg-muted rounded-xl">
+            <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
               <AvatarImage src={assistantData.profile_picture} />
               <AvatarFallback>
                 {assistantData.first_name[0]}{assistantData.last_name[0]}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h4 className="text-sm font-medium">Assistant</h4>
-              <p className="text-sm">
+            <div className="min-w-0 flex-1">
+              <h4 className="text-xs sm:text-sm font-medium">Assistant</h4>
+              <p className="text-xs sm:text-sm truncate">
                 {assistantData.first_name} {assistantData.last_name}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {assistantData.email}
               </p>
             </div>
@@ -166,7 +166,7 @@ export const XRayUploadModal: React.FC<XRayUploadModalProps> = ({
 
           {/* Upload Section */}
           <div
-            className="border-2 border-dashed border-primary rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50"
+            className="border-2 border-dashed border-primary rounded-xl p-3 sm:p-6 text-center cursor-pointer hover:bg-muted/50"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
           >
@@ -175,12 +175,12 @@ export const XRayUploadModal: React.FC<XRayUploadModalProps> = ({
                 <img
                   src={previewUrl}
                   alt="X-ray preview"
-                  className="max-w-full max-h-[200px] object-contain mx-auto"
+                  className="max-w-full max-h-[150px] sm:max-h-[200px] object-contain mx-auto rounded-lg"
                 />
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="absolute top-2 right-2"
+                  className="absolute top-2 right-2 rounded-full"
                   onClick={() => {
                     setSelectedFile(null);
                     setPreviewUrl(null);
@@ -190,10 +190,10 @@ export const XRayUploadModal: React.FC<XRayUploadModalProps> = ({
                 </Button>
               </div>
             ) : (
-              <div className="space-y-2">
-                <CloudUpload className="h-12 w-12 mx-auto text-primary" />
-                <p className="text-sm font-medium">Drop X-ray image here</p>
-                <p className="text-sm text-muted-foreground">or click to select file</p>
+              <div className="space-y-1 sm:space-y-2">
+                <CloudUpload className="h-8 w-8 sm:h-12 sm:w-12 mx-auto text-primary" />
+                <p className="text-xs sm:text-sm font-medium">Drop X-ray image here</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">or click to select file</p>
                 <Input
                   type="file"
                   accept="image/*"
@@ -203,7 +203,7 @@ export const XRayUploadModal: React.FC<XRayUploadModalProps> = ({
                 />
                 <Label
                   htmlFor="xray-upload-input"
-                  className="cursor-pointer"
+                  className="cursor-pointer text-xs sm:text-sm"
                 >
                   Select File
                 </Label>
@@ -212,20 +212,20 @@ export const XRayUploadModal: React.FC<XRayUploadModalProps> = ({
           </div>
 
           {/* Notes Section */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+          <div className="space-y-1 sm:space-y-2">
+            <Label htmlFor="notes" className="text-xs sm:text-sm">Notes</Label>
             <Input
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any notes about the X-ray..."
-              className="h-24"
+              className="h-16 sm:h-24 rounded-xl text-xs sm:text-sm"
             />
           </div>
 
           {/* Submit Button */}
           <Button
-            className="w-full"
+            className="w-full rounded-xl mt-2 sm:mt-4 text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
             onClick={handleSubmit}
             disabled={!selectedFile || isUploading}
           >
