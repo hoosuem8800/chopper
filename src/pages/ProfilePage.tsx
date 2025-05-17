@@ -608,13 +608,13 @@ const ProfilePage = () => {
         return 'Invalid time format';
       }
       
-      // Format the time using the date-fns format function which handles timezones better
-      // than native JavaScript methods
-      return format(date, 'h:mm a'); // Example: "9:00 AM"
+      // Extract time components without timezone conversion
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
       
-      // Alternative formats:
-      // return format(date, 'HH:mm'); // 24-hour format: "09:00"
-      // return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      // Convert to 12-hour format using timeUtils for consistency
+      const time24 = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      return timeUtils.to12Hour(time24);
     } catch (error) {
       console.error('Error formatting time:', error);
       return 'Time unavailable';
@@ -629,17 +629,23 @@ const ProfilePage = () => {
     console.log('Editing appointment:', {
       id: appointment.id,
       originalDateTime: appointment.date_time,
-      parsedDate: appointmentDate,
-      localTimeString: format(appointmentDate, "HH:mm")
+      parsedDate: appointmentDate
     });
     
     // Set state for the dialog
     setSelectedAppointmentId(appointment.id.toString());
     setSelectedDate(appointmentDate);
     
-    // Extract just the time portion in the local timezone to prevent timezone shifts
-    const timeInLocalTimezone = format(appointmentDate, "HH:mm");
-    setSelectedTime(timeInLocalTimezone);
+    // Extract time components without timezone conversion
+    const hours = appointmentDate.getHours();
+    const minutes = appointmentDate.getMinutes();
+    
+    // Create a standardized time string in 24-hour format (HH:MM)
+    const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    setSelectedTime(timeString);
+    
+    // Log the extracted time for debugging
+    console.log('Extracted time:', timeString);
     
     // Reset to first page when editing
     setCurrentPage(1);
@@ -883,9 +889,14 @@ const ProfilePage = () => {
     console.log('Creating timezone-aware date with:', { dateObj, timeString });
     
     // Format the date portion to ISO format YYYY-MM-DD
-    const dateString = format(dateObj, "yyyy-MM-dd");
+    const year = dateObj.getFullYear();
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const day = dateObj.getDate().toString().padStart(2, '0');
     
-    // Use the common timeUtils function for consistent date creation
+    // Create date string in YYYY-MM-DD format
+    const dateString = `${year}-${month}-${day}`;
+    
+    // Use the timeUtils function for consistent date creation
     return timeUtils.createTimezoneAwareDate(dateString, timeString);
   };
 
@@ -958,16 +969,45 @@ const ProfilePage = () => {
 
   // Check if a slot is available - improved to handle different time formats
   const isSlotAvailable = (time: string): boolean => {
-    // If the time is in 24-hour format, also check its 12-hour equivalent
-    if (!time.includes('AM') && !time.includes('PM')) {
-      // Time is likely in 24-hour format, check both formats
-      const time12h = timeUtils.to12Hour(time);
-      return !takenTimeSlots.includes(time) && !takenTimeSlots.includes(time12h);
+    if (!takenTimeSlots || takenTimeSlots.length === 0) {
+      return true;
     }
     
-    // If the time is in 12-hour format, also check its 24-hour equivalent
-    const time24h = timeUtils.to24Hour(time);
-    return !takenTimeSlots.includes(time) && !takenTimeSlots.includes(time24h);
+    // Normalize the input time for comparison
+    // Convert to both 12h and 24h formats for more reliable comparison
+    let time24h = time;
+    let time12h = time;
+    
+    if (time.includes('AM') || time.includes('PM')) {
+      // If input is in 12-hour format, convert to 24-hour
+      time24h = timeUtils.to24Hour(time);
+    } else {
+      // If input is in 24-hour format, convert to 12-hour
+      time12h = timeUtils.to12Hour(time);
+    }
+    
+    // Check both formats against taken slots
+    const isTaken = takenTimeSlots.some(takenTime => {
+      // Normalize the taken time for comparison
+      let takenTime24h = takenTime;
+      let takenTime12h = takenTime;
+      
+      if (takenTime.includes('AM') || takenTime.includes('PM')) {
+        takenTime24h = timeUtils.to24Hour(takenTime);
+      } else {
+        takenTime12h = timeUtils.to12Hour(takenTime);
+      }
+      
+      // Compare in both formats to ensure we catch all matches
+      return (
+        time24h === takenTime24h || 
+        time12h === takenTime12h || 
+        time24h === takenTime || 
+        time === takenTime24h
+      );
+    });
+    
+    return !isTaken;
   };
 
   const fetchAvailableTimeSlots = async (date: Date) => {
@@ -979,10 +1019,19 @@ const ProfilePage = () => {
       const takenSlotsResponse = await appointmentService.getTakenSlots(formattedDate);
       let newTakenSlots: string[] = [];
       
-      // Extract taken slots from the response - should include both formats now
+      // Extract taken slots from the response - normalize formats
       if (takenSlotsResponse && takenSlotsResponse.data) {
-        newTakenSlots = takenSlotsResponse.data;
-        console.log('Received taken slots (both formats):', newTakenSlots);
+        // Process each slot to normalize the formats for better comparison
+        newTakenSlots = takenSlotsResponse.data.map(slot => {
+          // If it's an ISO string containing T, extract just the time part
+          if (slot && typeof slot === 'string' && slot.includes('T')) {
+            const dateObj = new Date(slot);
+            return `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+          }
+          return slot;
+        });
+        
+        console.log('Processed taken slots:', newTakenSlots);
       }
       
       setTakenTimeSlots(newTakenSlots);
@@ -996,7 +1045,7 @@ const ProfilePage = () => {
       // If currently selected time is now taken, deselect it
       if (selectedTime && !isSlotAvailable(selectedTime)) {
         setSelectedTime("");
-      toast({
+        toast({
           title: "Time Unavailable",
           description: "The previously selected time slot is no longer available.",
           variant: "destructive",
