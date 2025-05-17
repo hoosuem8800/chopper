@@ -908,15 +908,23 @@ export const appointmentService = {
       // Filter out any invalid or empty values
       takenSlots = takenSlots.filter(slot => slot && typeof slot === 'string');
       
-      // Normalize all slots to 24-hour format for consistent comparison
+      // Handle timezone differences for ISO dates by adjusting the time
       const normalizedSlots = takenSlots.map(slot => {
         // Case 1: Already in 24-hour format (HH:MM)
         if (slot.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
           return slot;
         }
         
-        // Case 2: ISO format with T
+        // Case 2: ISO format with T - extract time considering timezone
         if (slot.includes('T')) {
+          const isoDate = new Date(slot);
+          if (!isNaN(isoDate.getTime())) {
+            // Get local time components
+            const hours = isoDate.getHours();
+            const minutes = isoDate.getMinutes();
+            // Return time in 24-hour format
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          }
           return timeUtils.extractTimeFromISO(slot);
         }
         
@@ -929,12 +937,18 @@ export const appointmentService = {
       });
       
       // Also include the original formats for backward compatibility with older code
-      // This ensures both old and new format comparisons will work
       const originalFormats = takenSlots.map(slot => {
         // For slots in 24-hour format, also include 12-hour format
         if (slot.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
           return timeUtils.to12Hour(slot);
         }
+        
+        // For ISO dates, extract and convert to 12-hour
+        if (slot.includes('T')) {
+          const extractedTime = timeUtils.extractTimeFromISO(slot);
+          return timeUtils.to12Hour(extractedTime);
+        }
+        
         return slot;
       });
       
@@ -943,7 +957,7 @@ export const appointmentService = {
       
       // Return both formats to ensure compatibility
       return { 
-        data: [...normalizedSlots, ...originalFormats],
+        data: [...new Set([...normalizedSlots, ...originalFormats])], // Use Set to remove duplicates
         rawResponse: response.data
       };
     } catch (error: any) {
@@ -2400,18 +2414,22 @@ export const timeUtils = {
       time24 = timeUtils.to24Hour(timeString);
     }
     
-    // Format into ISO string for consistent handling
-    const isoString = `${dateString}T${time24}:00`;
-    const date = new Date(isoString);
+    // Parse date and time components
+    const [year, month, day] = dateString.split('-').map(Number);
+    const [hours, minutes] = time24.split(':').map(Number);
     
-    console.log('Created date object:', {
+    // Create date using simple date constructor with local values
+    // This avoids any built-in timezone handling that might cause shifts
+    const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    
+    console.log('Created local date object:', {
       inputDate: dateString,
       inputTime: timeString,
       normalizedTime: time24,
-      isoString,
-      resultDate: date.toISOString()
+      resultDate: localDate.toISOString(),
+      resultString: localDate.toString()
     });
     
-    return date;
+    return localDate;
   }
 };

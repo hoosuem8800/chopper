@@ -87,13 +87,56 @@ const AppointmentPage = () => {
     try {
       console.log(`Fetching taken slots for date: ${date}`);
       
-      // Call the appointmentService directly (fixed)
+      // Call the appointmentService directly
       const takenSlotsResponse = await appointmentService.getTakenSlots(date);
-      console.log('Processed taken slots with both formats:', takenSlotsResponse.data);
+      console.log('Raw taken slots response:', takenSlotsResponse);
       
-      // Set the taken slots from the response data property
-      setTakenSlots(takenSlotsResponse.data || []);
-      return takenSlotsResponse.data || [];
+      // Normalize the taken slots to ensure consistent format
+      const rawSlots = takenSlotsResponse.data || [];
+      const normalizedSlots = [];
+      
+      // Process each slot to ensure we have consistent formats
+      rawSlots.forEach(slot => {
+        if (!slot || typeof slot !== 'string') return;
+        
+        try {
+          // Handle ISO datetime format (contains T)
+          if (slot.includes('T')) {
+            const dateParts = slot.split('T');
+            if (dateParts.length > 1) {
+              // Extract just the time part and remove any seconds/milliseconds
+              const timePart = dateParts[1].split(':').slice(0, 2).join(':');
+              normalizedSlots.push(timePart); // 24-hour format
+              normalizedSlots.push(timeUtils.to12Hour(timePart)); // 12-hour format
+            }
+          } 
+          // Handle 12-hour format (contains AM/PM)
+          else if (slot.includes('AM') || slot.includes('PM')) {
+            normalizedSlots.push(slot); // Original 12-hour format
+            normalizedSlots.push(timeUtils.to24Hour(slot)); // 24-hour format
+          } 
+          // Handle 24-hour format (HH:MM)
+          else if (slot.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+            normalizedSlots.push(slot); // Original 24-hour format
+            normalizedSlots.push(timeUtils.to12Hour(slot)); // 12-hour format
+          }
+          // Any other format, just include as is
+          else {
+            normalizedSlots.push(slot);
+          }
+        } catch (formatError) {
+          console.error('Error normalizing time slot:', formatError);
+          // Still include the original slot
+          normalizedSlots.push(slot);
+        }
+      });
+      
+      // Remove duplicates and set state
+      const uniqueSlots = [...new Set(normalizedSlots)];
+      console.log('Normalized taken slots:', uniqueSlots);
+      setTakenSlots(uniqueSlots);
+      
+      return uniqueSlots;
     } catch (error) {
       console.error('Error fetching taken slots:', error);
       customToast.error('Failed to fetch availability. Using default slots.');
@@ -110,15 +153,77 @@ const AppointmentPage = () => {
 
   // Check if a slot is available - improved to handle different time formats
   const isSlotAvailable = (time) => {
-    // If time is in 12-hour format with AM/PM, also check 24-hour format
-    if (time.includes('AM') || time.includes('PM')) {
-      const time24h = timeUtils.to24Hour(time);
-      return !takenSlots.includes(time) && !takenSlots.includes(time24h);
+    // Handle empty or invalid slots array
+    if (!takenSlots || !Array.isArray(takenSlots) || takenSlots.length === 0) {
+      return true;
     }
     
-    // If time is in 24-hour format, also check 12-hour format
-    const time12h = timeUtils.to12Hour(time);
-    return !takenSlots.includes(time) && !takenSlots.includes(time12h);
+    console.log('Checking availability for time:', time);
+    
+    // Normalize the input time for consistent comparison
+    let normalizedInputTime;
+    
+    // First convert to 24-hour format if needed
+    if (time.includes('AM') || time.includes('PM')) {
+      normalizedInputTime = timeUtils.to24Hour(time);
+    } else {
+      normalizedInputTime = time;
+    }
+    
+    // Remove any seconds and just keep hours and minutes (HH:MM)
+    if (normalizedInputTime.includes(':')) {
+      const [hours, minutes] = normalizedInputTime.split(':');
+      normalizedInputTime = `${hours.padStart(2, '0')}:${minutes.substring(0, 2).padStart(2, '0')}`;
+    }
+    
+    console.log('Normalized input time for comparison:', normalizedInputTime);
+    
+    // Also generate 12-hour format for comparison
+    const inputTime12h = timeUtils.to12Hour(normalizedInputTime);
+    
+    // Get all normalized forms of the time for comparison
+    const timeFormatsToCheck = [
+      normalizedInputTime,                        // 24-hour (HH:MM)
+      inputTime12h,                               // 12-hour (H:MM AM/PM)
+      inputTime12h.replace(' 0', ' ').replace('0', '') // Fix padding for 12-hour
+    ];
+    
+    console.log('Time formats to check:', timeFormatsToCheck);
+    
+    // Check against normalized taken slots
+    const isUnavailable = takenSlots.some(slot => {
+      // Skip invalid slots
+      if (!slot || typeof slot !== 'string') return false;
+      
+      // Normalize the slot time for comparison
+      let normalizedSlotTime = slot;
+      
+      // Handle ISO datetime format (contains T)
+      if (slot.includes('T')) {
+        const dateParts = slot.split('T');
+        if (dateParts.length > 1) {
+          // Extract just the time part and remove any seconds/milliseconds
+          normalizedSlotTime = dateParts[1].split(':').slice(0, 2).join(':');
+        }
+      }
+      
+      // For 12-hour format, convert to 24-hour
+      if (slot.includes('AM') || slot.includes('PM')) {
+        normalizedSlotTime = timeUtils.to24Hour(slot);
+      }
+      
+      // Ensure format is HH:MM by removing seconds and padding hours
+      if (normalizedSlotTime.includes(':')) {
+        const [hours, minutes] = normalizedSlotTime.split(':');
+        normalizedSlotTime = `${hours.padStart(2, '0')}:${minutes.substring(0, 2).padStart(2, '0')}`;
+      }
+      
+      // Check all formats of the input time against the normalized slot time
+      return timeFormatsToCheck.some(format => normalizedSlotTime === format);
+    });
+    
+    console.log(`Time ${time} is ${isUnavailable ? 'unavailable' : 'available'}`);
+    return !isUnavailable;
   };
 
   // Handle date selection
@@ -227,34 +332,42 @@ const AppointmentPage = () => {
         return;
       }
       
-      // Format date and time to ISO format for backend
+      // Create date in local time without timezone adjustment
       try {
-        // Use createTimezoneAwareDate function to ensure consistent timezone handling
-        const dateTime = createTimezoneAwareDate(appointmentDate, selectedTimeSlot);
+        // Parse date and time components directly
+        const [year, month, day] = appointmentDate.split('-').map(Number);
         
-        // Check if valid date
-        if (isNaN(dateTime.getTime())) {
-          customToast.error('Invalid date or time');
-          setLoading(false);
-          return;
+        // Convert time to 24-hour format if needed
+        let time24 = selectedTimeSlot;
+        if (selectedTimeSlot.includes('AM') || selectedTimeSlot.includes('PM')) {
+          time24 = timeUtils.to24Hour(selectedTimeSlot);
         }
+        const [hours, minutes] = time24.split(':').map(Number);
         
-        // Ensure we're sending the time in ISO format with 'Z' indicating UTC timezone
-        const isoDateTime = dateTime.toISOString();
+        // Create date directly with local values (no timezone conversion)
+        const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
         
-        // Log the conversion for debugging
-        console.log('Original time slot:', selectedTimeSlot);
-        console.log('ISO date time:', isoDateTime);
+        // Log values for debugging
+        console.log('Appointment submission details:', {
+          appointmentDate,
+          selectedTimeSlot,
+          time24Format: time24,
+          dateObject: localDate.toString(),
+          isoString: localDate.toISOString()
+        });
         
-        // Prepare appointment data - simplified without doctor
+        // Format date string in ISO format for API but with consistent values
+        // This uses a format that avoids timezone issues: "YYYY-MM-DDTHH:MM:00"
+        const formattedDateTime = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+        
+        // Prepare appointment data
         const appointmentData = {
-          date_time: isoDateTime,
+          date_time: formattedDateTime,
           status: 'confirmed',
           notes: `Appointment booked by ${firstName} ${lastName} (${email}, ${phone})`
         };
         
         console.log('Submitting appointment data:', appointmentData);
-        console.log('Current auth token:', localStorage.getItem('token'));
         
         // Submit to API with complete error handling
         try {
@@ -303,7 +416,7 @@ const AppointmentPage = () => {
       setLoading(false);
     }
   };
-  
+
   const getTodayDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -446,7 +559,7 @@ const AppointmentPage = () => {
                         <button
                           key={time}
                           type="button"
-                          className={cn(
+                            className={cn(
                             "relative p-3 rounded-lg text-sm border transition-all duration-200 font-medium",
                             isSlotAvailable(time) 
                               ? selectedTimeSlot === time 
@@ -457,13 +570,13 @@ const AppointmentPage = () => {
                           onClick={() => handleTimeSlotSelection(time)}
                           disabled={!isSlotAvailable(time)}
                         >
-                          {time}
+                              {time}
                           {!isSlotAvailable(time) && (
                             <Lock className="absolute top-1 right-1 h-3 w-3 text-gray-400" />
                           )}
-                          {selectedTimeSlot === time && (
+                            {selectedTimeSlot === time && (
                             <Check className="absolute top-1 right-1 h-3 w-3 text-white" />
-                          )}
+                            )}
                         </button>
                       ))}
                     </div>
@@ -536,7 +649,7 @@ const AppointmentPage = () => {
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                   <Button 
-                    onClick={handleConfirmBooking} 
+                    onClick={handleConfirmBooking}
                     disabled={loading}
                     className="px-6"
                   >
@@ -574,7 +687,7 @@ const AppointmentPage = () => {
           </div>
         </div>
       </main>
-
+      
       {/* Info Dialog */}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
         <DialogContent>
@@ -594,7 +707,7 @@ const AppointmentPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+          </div>
   );
 };
 
