@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Check, Clock, Calendar, ArrowLeft, ArrowRight, CheckCircle, User, Mail, Phone, AlertCircle, X, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { api, API_BASE_URL } from '@/services/api';
+import { api, API_BASE_URL, timeUtils, appointmentService } from '@/services/api';
 import { customToast } from '@/lib/toast';
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 const AppointmentPage = () => {
   const navigate = useNavigate();
@@ -73,38 +74,29 @@ const AppointmentPage = () => {
     fetchUserProfile();
   }, [isAuthenticated, user, navigate, location]);
 
-  // Add function to fetch taken slots
+  // Enhanced function to create a timezone-aware date object
+  const createTimezoneAwareDate = (dateString: string, timeString: string): Date => {
+    console.log('Creating timezone-aware date with:', { dateString, timeString });
+    
+    // Use the common timeUtils implementation for consistent behavior
+    return timeUtils.createTimezoneAwareDate(dateString, timeString);
+  };
+
+  // Enhanced function to fetch taken slots with better format handling
   const fetchTakenSlots = async (date) => {
     try {
       console.log(`Fetching taken slots for date: ${date}`);
-      const response = await api.get(`/appointments/taken-slots/?date=${date}`);
-      const newTakenSlots = response.data.taken_slots || [];
-      console.log('Received taken slots:', newTakenSlots);
       
-      // Ensure each time slot is in 12-hour format (AM/PM)
-      const formattedSlots = newTakenSlots.map(slot => {
-        // If the slot is already in 12-hour format, return it as is
-        if (slot.includes('AM') || slot.includes('PM')) {
-          return slot;
-        }
-        
-        // Otherwise, convert from 24-hour to 12-hour format if needed
-        try {
-          const [hours, minutes] = slot.split(':');
-          const hour = parseInt(hours);
-          const period = hour >= 12 ? 'PM' : 'AM';
-          const hour12 = hour % 12 || 12;
-          return `${hour12.toString().padStart(2, '0')}:${minutes} ${period}`;
-        } catch (e) {
-          console.error('Error formatting time slot:', e);
-          return slot;
-        }
-      });
+      // Call the appointmentService directly (fixed)
+      const takenSlotsResponse = await appointmentService.getTakenSlots(date);
+      console.log('Processed taken slots with both formats:', takenSlotsResponse.data);
       
-      setTakenSlots(formattedSlots);
-      return formattedSlots;
+      // Set the taken slots from the response data property
+      setTakenSlots(takenSlotsResponse.data || []);
+      return takenSlotsResponse.data || [];
     } catch (error) {
       console.error('Error fetching taken slots:', error);
+      customToast.error('Failed to fetch availability. Using default slots.');
       return [];
     }
   };
@@ -116,9 +108,17 @@ const AppointmentPage = () => {
     }
   }, [appointmentDate]);
 
-  // Check if a slot is available
+  // Check if a slot is available - improved to handle different time formats
   const isSlotAvailable = (time) => {
-    return !takenSlots.includes(time);
+    // If time is in 12-hour format with AM/PM, also check 24-hour format
+    if (time.includes('AM') || time.includes('PM')) {
+      const time24h = timeUtils.to24Hour(time);
+      return !takenSlots.includes(time) && !takenSlots.includes(time24h);
+    }
+    
+    // If time is in 24-hour format, also check 12-hour format
+    const time12h = timeUtils.to12Hour(time);
+    return !takenSlots.includes(time) && !takenSlots.includes(time12h);
   };
 
   // Handle date selection
@@ -304,44 +304,6 @@ const AppointmentPage = () => {
     }
   };
   
-  // New function to create a timezone-aware date object
-  const createTimezoneAwareDate = (dateString: string, timeString: string): Date => {
-    // Parse timeString to get hours and minutes
-    const [timePart, period] = timeString.split(' ');
-    let [hours, minutes] = timePart.split(':').map(Number);
-    
-    // Convert to 24-hour format
-    if (period === 'PM' && hours < 12) {
-      hours += 12;
-    } else if (period === 'AM' && hours === 12) {
-      hours = 0;
-    }
-    
-    // Create a new date object in UTC
-    const date = new Date(`${dateString}T00:00:00Z`);
-    
-    // Set hours and minutes
-    date.setUTCHours(hours, minutes, 0, 0);
-    
-    return date;
-  };
-  
-  // Convert 12-hour time format to 24-hour format (keep for backwards compatibility)
-  const convertTo24Hour = (timeString) => {
-    const [time, period] = timeString.split(' ');
-    let [hours, minutes] = time.split(':');
-    
-    hours = parseInt(hours);
-    if (period === 'PM' && hours < 12) {
-      hours += 12;
-    } else if (period === 'AM' && hours === 12) {
-      hours = 0;
-    }
-    
-    // Return in HH:MM:00 format (suitable for ISO date construction)
-    return `${hours.toString().padStart(2, '0')}:${minutes}:00`;
-  };
-
   const getTodayDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -380,8 +342,6 @@ const AppointmentPage = () => {
                 style={{ width: `${currentStep === 0 ? '0%' : currentStep === 1 ? '50%' : '100%'}` }}
               ></div>
             </div>
-
-            {/* User Information Card - Removed */}
 
             {/* Step 1: Personal Details */}
             {currentStep === 0 && (
@@ -478,100 +438,45 @@ const AppointmentPage = () => {
                     />
                     {errors.date && <p className="text-red-500 text-sm mt-1">{errors.date}</p>}
                   </div>
+
                   <div>
-                    <div className="flex items-center justify-between">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Time Slot</label>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-primary hover:text-primary/80 hover:bg-primary/10"
-                        onClick={() => setShowInfoDialog(true)}
-                      >
-                        <AlertCircle className="h-5 w-5" />
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[300px] overflow-y-auto bg-blue-50/30 p-3 rounded-xl">
-                      {timeSlots.map((time, index) => {
-                        const isAvailable = isSlotAvailable(time);
-                        return (
-                          <div
-                            key={index}
-                            onClick={() => isAvailable && handleTimeSlotSelection(time)}
-                            className={cn(
-                              "relative p-3 border-2 rounded-xl transition-all",
-                              selectedTimeSlot === time 
-                                ? 'border-transparent bg-gradient-to-br from-primary to-blue-500 text-white transform scale-105 shadow-md'
-                                : isAvailable
-                                  ? 'border-primary bg-white hover:bg-blue-50 hover:-translate-y-1 cursor-pointer'
-                                  : 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-70'
-                            )}
-                          >
-                            <div className="text-center font-medium">
-                              {time}
-                              {!isAvailable && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-gray-100/90 rounded-xl">
-                                  <div className="flex items-center gap-1 text-cyan-500">
-                                    <Lock className="h-4 w-4" />
-                                    <span className="text-sm">Taken</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            {selectedTimeSlot === time && (
-                              <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow">
-                                <Check className="h-4 w-4 text-primary" />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <h3 className="text-sm font-medium text-gray-700 mb-1">Time Slot</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {timeSlots.map((time) => (
+                        <button
+                          key={time}
+                          type="button"
+                          className={cn(
+                            "relative p-3 rounded-lg text-sm border transition-all duration-200 font-medium",
+                            isSlotAvailable(time) 
+                              ? selectedTimeSlot === time 
+                                ? "border-primary bg-primary text-white shadow-md" 
+                                : "border-gray-200 hover:border-primary/50"
+                              : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                          )}
+                          onClick={() => handleTimeSlotSelection(time)}
+                          disabled={!isSlotAvailable(time)}
+                        >
+                          {time}
+                          {!isSlotAvailable(time) && (
+                            <Lock className="absolute top-1 right-1 h-3 w-3 text-gray-400" />
+                          )}
+                          {selectedTimeSlot === time && (
+                            <Check className="absolute top-1 right-1 h-3 w-3 text-white" />
+                          )}
+                        </button>
+                      ))}
                     </div>
                     {errors.time && <p className="text-red-500 text-sm mt-1">{errors.time}</p>}
                   </div>
                 </div>
 
-                {/* Appointment Information Dialog */}
-                <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-semibold text-primary flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5" />
-                        Appointment Information
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <p className="text-gray-700 text-sm">
-                        Please arrive at least 15 minutes before your scheduled appointment time.
-                        Bring any relevant documents or information that may be helpful.
-                      </p>
-                      <ul className="space-y-3">
-                        <li className="flex items-start gap-2 text-sm text-gray-700">
-                          <span className="text-primary">•</span>
-                          <span>The appointment takes approximately 30-45 minutes</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm text-gray-700">
-                          <span className="text-primary">•</span>
-                          <span>You'll receive a confirmation email with details</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm text-gray-700">
-                          <span className="text-primary">•</span>
-                          <span>You can manage your appointments from your profile page</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
-                <div className="flex justify-between">
-                  <Button 
-                    variant="outline" 
-                    className="border-primary text-primary hover:bg-primary/10"
-                    onClick={handlePrevStep}
-                  >
+                <div className="flex justify-between mt-8">
+                  <Button variant="outline" onClick={handlePrevStep}>
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
-                  <Button className="disappear-button" onClick={handleNextStep}>
-                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  <Button onClick={handleNextStep} className="px-6">
+                    Next <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -581,95 +486,86 @@ const AppointmentPage = () => {
             {currentStep === 2 && (
               <div className="animate-fade-in">
                 <h3 className="text-2xl font-bold gradient-text mb-6 flex items-center">
-                  <CheckCircle className="mr-2 h-6 w-6" />Confirmation
+                  <CheckCircle className="mr-2 h-6 w-6" />Confirm Appointment
                 </h3>
-                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm mb-4 sm:mb-6">
-                  <h4 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Appointment Details</h4>
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:gap-8">
-                      <div className="w-full sm:w-1/2 flex items-start gap-2 mb-3 sm:mb-0">
-                        <div className="bg-cyan-50 p-2 rounded-lg">
-                          <User className="h-4 w-4 text-primary" />
+                
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1 flex items-center">
+                        <User className="h-4 w-4 mr-2" />Patient Name
+                      </p>
+                      <p className="font-medium">{firstName} {lastName}</p>
                     </div>
                     <div>
-                          <p className="text-xs text-gray-500">Name</p>
-                          <p className="font-medium text-sm">{firstName} {lastName}</p>
-                        </div>
-                      </div>
-                      <div className="w-full sm:w-1/2 flex items-start gap-2">
-                        <div className="bg-cyan-50 p-2 rounded-lg">
-                          <Mail className="h-4 w-4 text-primary" />
+                      <p className="text-sm text-gray-500 mb-1 flex items-center">
+                        <Mail className="h-4 w-4 mr-2" />Email
+                      </p>
+                      <p className="font-medium">{email}</p>
                     </div>
                     <div>
-                          <p className="text-xs text-gray-500">Email</p>
-                          <p className="font-medium text-sm truncate max-w-[220px]">{email}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row sm:gap-8">
-                      <div className="w-full sm:w-1/2 flex items-start gap-2 mb-3 sm:mb-0">
-                        <div className="bg-cyan-50 p-2 rounded-lg">
-                          <Phone className="h-4 w-4 text-primary" />
+                      <p className="text-sm text-gray-500 mb-1 flex items-center">
+                        <Phone className="h-4 w-4 mr-2" />Phone
+                      </p>
+                      <p className="font-medium">{phone}</p>
                     </div>
                     <div>
-                          <p className="text-xs text-gray-500">Phone</p>
-                          <p className="font-medium text-sm">{phone}</p>
-                        </div>
-                      </div>
-                      <div className="w-full sm:w-1/2 flex items-start gap-2">
-                        <div className="bg-cyan-50 p-2 rounded-lg">
-                          <Calendar className="h-4 w-4 text-primary" />
+                      <p className="text-sm text-gray-500 mb-1 flex items-center">
+                        <Calendar className="h-4 w-4 mr-2" />Date
+                      </p>
+                      <p className="font-medium">
+                        {appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        }) : 'No date selected'}
+                      </p>
                     </div>
                     <div>
-                          <p className="text-xs text-gray-500">Date</p>
-                          <p className="font-medium text-sm">{appointmentDate}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row sm:gap-8">
-                      <div className="w-full sm:w-1/2 flex items-start gap-2 mb-3 sm:mb-0">
-                        <div className="bg-cyan-50 p-2 rounded-lg">
-                          <Clock className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Time</p>
-                          <p className="font-medium text-sm">{selectedTimeSlot}</p>
-                        </div>
-                      </div>
-                      <div className="w-full sm:w-1/2 flex items-start gap-2">
-                        <div className="bg-primary/10 p-2 rounded-lg">
-                          <Clock className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Appointment Type</p>
-                          <p className="font-medium text-sm">Scan Appointment</p>
-                        </div>
-                      </div>
+                      <p className="text-sm text-gray-500 mb-1 flex items-center">
+                        <Clock className="h-4 w-4 mr-2" />Time
+                      </p>
+                      <p className="font-medium">{selectedTimeSlot}</p>
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-between">
-                  <Button 
-                    variant="outline" 
-                    className="border-primary text-primary hover:bg-primary/10"
-                    onClick={handlePrevStep}
-                  >
+                
+                <div className="flex justify-between mt-8">
+                  <Button variant="outline" onClick={handlePrevStep}>
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                   <Button 
-                    className="disappear-button" 
-                    onClick={handleConfirmBooking}
+                    onClick={handleConfirmBooking} 
                     disabled={loading}
+                    className="px-6"
                   >
                     {loading ? (
-                      <span className="flex items-center gap-2">
-                        <span className="animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full"></span>
+                      <>
+                        <span className="animate-spin mr-2">
+                          <svg className="h-4 w-4" viewBox="0 0 24 24">
+                            <circle 
+                              className="opacity-25" 
+                              cx="12" 
+                              cy="12" 
+                              r="10" 
+                              stroke="currentColor" 
+                              strokeWidth="4"
+                              fill="none"
+                            ></circle>
+                            <path 
+                              className="opacity-75" 
+                              fill="currentColor" 
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                        </span>
                         Processing...
-                      </span>
+                      </>
                     ) : (
-                      'Confirm Appointment'
+                      <>
+                        Confirm Booking <Check className="ml-2 h-4 w-4" />
+                      </>
                     )}
                   </Button>
                 </div>
@@ -678,8 +574,27 @@ const AppointmentPage = () => {
           </div>
         </div>
       </main>
-      
+
+      {/* Info Dialog */}
+      <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Appointment Information</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-700 mb-4">
+              Please note that all appointments are subject to availability and confirmation.
+            </p>
+            <p className="text-gray-700">
+              After booking, you'll receive a confirmation email with details about your appointment.
+            </p>
           </div>
+          <div className="flex justify-end">
+            <Button onClick={() => setShowInfoDialog(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

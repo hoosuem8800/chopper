@@ -705,13 +705,13 @@ const AppDash = () => {
             <div className="grid gap-1">
               <Label htmlFor="date" className="text-xs sm:text-sm">Select new date</Label>
               <div className="w-full overflow-hidden">
-                <CalendarComponent
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateChange}
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateChange}
                   className="rounded-xl border mx-auto scale-[0.85] sm:scale-90 origin-top"
-                  disabled={(date) => date < new Date()}
-                />
+                disabled={(date) => date < new Date()}
+              />
               </div>
             </div>
             <div className="grid gap-1">

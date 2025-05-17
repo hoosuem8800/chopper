@@ -796,6 +796,32 @@ export const appointmentService = {
         success: true
       };
     }
+    
+    console.log('Updating appointment:', appointmentId, appointmentData);
+    
+    // Ensure date_time is properly formatted if provided
+    if (appointmentData.date_time) {
+      try {
+        // Make sure it's a valid ISO string by attempting to parse it
+        const testDate = new Date(appointmentData.date_time);
+        if (isNaN(testDate.getTime())) {
+          console.error('Invalid date_time format, attempting to fix:', appointmentData.date_time);
+          
+          // If we have date and time separately, try to create a valid ISO string
+          if (appointmentData.date && appointmentData.time) {
+            const fixedDate = timeUtils.createTimezoneAwareDate(
+              appointmentData.date,
+              appointmentData.time
+            );
+            appointmentData.date_time = fixedDate.toISOString();
+            console.log('Fixed date_time:', appointmentData.date_time);
+          }
+        }
+      } catch (e) {
+        console.error('Error checking date_time format:', e);
+      }
+    }
+    
     const response = await api.put(`/appointments/${appointmentId}/`, appointmentData);
     return response.data;
   },
@@ -841,34 +867,88 @@ export const appointmentService = {
       // Create mock taken slots with different formats to test the handling
       const mockTimes = ['09:00', '11:00 AM', '2:00 PM', `${date}T14:00:00`];
       
+      // Include older formats that might be causing issues
+      const oldFormatTimes = mockTimes.map(time => {
+        if (time.includes('AM') || time.includes('PM')) {
+          return timeUtils.to24Hour(time);
+        }
+        return time;
+      });
+      
       return {
-        data: mockTimes
+        data: [...mockTimes, ...oldFormatTimes],
+        oldFormat: oldFormatTimes
       };
     }
     
     try {
+      console.log(`Fetching taken slots for date: ${date}`);
       const response = await api.get(`/appointments/taken-slots/?date=${date}`);
-      console.log('Taken slots response:', response.data);
+      console.log('Taken slots API response:', response.data);
       
-      // Make sure we always return an object with a data property that's an array
+      // Normalize data format for consistent processing
+      let takenSlots = [];
+      
+      // Try to extract the data based on different response formats
       if (Array.isArray(response.data)) {
-        return { data: response.data };
+        takenSlots = response.data;
       } else if (response.data && Array.isArray(response.data.taken_slots)) {
-        return { data: response.data.taken_slots };
+        takenSlots = response.data.taken_slots;
       } else if (response.data && typeof response.data === 'object') {
         // Try to find any array property that might contain the slots
         const possibleArrays = Object.values(response.data).filter(Array.isArray);
         if (possibleArrays.length > 0) {
           // Use the first array found
-          return { data: possibleArrays[0] };
+          takenSlots = possibleArrays[0];
         }
       }
       
-      console.warn('Unexpected response format from taken-slots endpoint:', response.data);
-      return { data: [] }; // Return empty array as fallback
-    } catch (error) {
+      console.log('Extracted taken slots:', takenSlots);
+      
+      // Filter out any invalid or empty values
+      takenSlots = takenSlots.filter(slot => slot && typeof slot === 'string');
+      
+      // Normalize all slots to 24-hour format for consistent comparison
+      const normalizedSlots = takenSlots.map(slot => {
+        // Case 1: Already in 24-hour format (HH:MM)
+        if (slot.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+          return slot;
+        }
+        
+        // Case 2: ISO format with T
+        if (slot.includes('T')) {
+          return timeUtils.extractTimeFromISO(slot);
+        }
+        
+        // Case 3: 12-hour format with AM/PM
+        if (slot.includes('AM') || slot.includes('PM')) {
+          return timeUtils.to24Hour(slot);
+        }
+        
+        return slot; // Return as is if no format is recognized
+      });
+      
+      // Also include the original formats for backward compatibility with older code
+      // This ensures both old and new format comparisons will work
+      const originalFormats = takenSlots.map(slot => {
+        // For slots in 24-hour format, also include 12-hour format
+        if (slot.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+          return timeUtils.to12Hour(slot);
+        }
+        return slot;
+      });
+      
+      console.log('Normalized slots (24h):', normalizedSlots);
+      console.log('Original format slots:', originalFormats);
+      
+      // Return both formats to ensure compatibility
+      return { 
+        data: [...normalizedSlots, ...originalFormats],
+        rawResponse: response.data
+      };
+    } catch (error: any) {
       console.error('Error fetching taken time slots:', error);
-      return { data: [] }; // Return empty array on error
+      return { data: [], error }; // Return empty array and error for handling
     }
   },
 
@@ -2260,3 +2340,78 @@ function formatImageUrl(imageUrl: string): string {
   console.log('Formatted image URL:', formattedUrl);
   return formattedUrl;
 } 
+
+// Helper function to standardize time formats throughout the application
+export const timeUtils = {
+  // Convert 24-hour format (HH:MM) to 12-hour format (HH:MM AM/PM)
+  to12Hour: (time24: string): string => {
+    try {
+      const [hours, minutes] = time24.split(':').map(Number);
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const hours12 = hours % 12 || 12;
+      return `${hours12.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`;
+    } catch (error) {
+      console.error('Error converting to 12-hour format:', error);
+      return time24;
+    }
+  },
+
+  // Convert 12-hour format (HH:MM AM/PM) to 24-hour format (HH:MM)
+  to24Hour: (time12: string): string => {
+    try {
+      const [timePart, period] = time12.split(' ');
+      let [hours, minutes] = timePart.split(':').map(Number);
+      
+      if (period === 'PM' && hours < 12) {
+        hours += 12;
+      } else if (period === 'AM' && hours === 12) {
+        hours = 0;
+      }
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    } catch (error) {
+      console.error('Error converting to 24-hour format:', error);
+      return time12;
+    }
+  },
+
+  // Extract time from an ISO date string
+  extractTimeFromISO: (isoString: string): string => {
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return '';
+      
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    } catch (error) {
+      console.error('Error extracting time from ISO:', error);
+      return '';
+    }
+  },
+
+  // Create a timezone-aware date with consistent handling
+  createTimezoneAwareDate: (dateString: string, timeString: string): Date => {
+    console.log(`Creating timezone-aware date for ${dateString} ${timeString}`);
+    
+    // Convert time to 24-hour format if it's in 12-hour format
+    let time24 = timeString;
+    if (timeString.includes('AM') || timeString.includes('PM')) {
+      time24 = timeUtils.to24Hour(timeString);
+    }
+    
+    // Format into ISO string for consistent handling
+    const isoString = `${dateString}T${time24}:00`;
+    const date = new Date(isoString);
+    
+    console.log('Created date object:', {
+      inputDate: dateString,
+      inputTime: timeString,
+      normalizedTime: time24,
+      isoString,
+      resultDate: date.toISOString()
+    });
+    
+    return date;
+  }
+};

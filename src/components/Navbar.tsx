@@ -747,15 +747,15 @@ const Navbar = () => {
                       </span>
                     )}
                 </div>
-              </div>
+                </div>
                 
               <div className="bg-gradient-to-b from-blue-50 to-white py-0.5"></div>
               
               {/* Loading State */}
-              {loadingNotifications ? (
+                  {loadingNotifications ? (
                 <div className="flex justify-center items-center py-4">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-t-blue-500 border-r-blue-500 border-b-transparent border-l-transparent"></div>
-                </div>
+                    </div>
               ) : (
                 <>
                   {/* Empty State - Only when there are no notifications at all */}
@@ -782,66 +782,66 @@ const Navbar = () => {
                         <div className="max-h-[50vh] overflow-y-auto divide-y divide-gray-100">
                           {/* Only show unread notifications */}
                           {notifications.filter(notification => !notification.is_read).map(notification => (
-                            <div 
-                              key={notification.id}
+                        <div 
+                          key={notification.id}
                               className="flex items-start p-2.5 gap-2 w-full hover:bg-blue-50/50 active:bg-blue-50/70 transition-colors duration-200 cursor-pointer bg-blue-50/50"
-                              onClick={() => {
-                                handleNotificationClick(notification);
-                                setMobileNotificationDropdownOpen(false);
-                              }}
-                            >
+                          onClick={() => {
+                            handleNotificationClick(notification);
+                            setMobileNotificationDropdownOpen(false);
+                          }}
+                        >
                               <div className={`shrink-0 rounded-full p-2 ${
-                                notification.notification_type === 'scan' ? 'bg-cyan-100 text-cyan-600' : 
-                                notification.notification_type === 'xray' ? 'bg-blue-100 text-blue-600' :
-                                notification.notification_type === 'appointment' ? 'bg-purple-100 text-purple-600' :
-                                'bg-gray-100 text-gray-600'
-                              }`}>
-                                {getNotificationIcon(notification.notification_type)}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2">
+                            notification.notification_type === 'scan' ? 'bg-cyan-100 text-cyan-600' : 
+                            notification.notification_type === 'xray' ? 'bg-blue-100 text-blue-600' :
+                            notification.notification_type === 'appointment' ? 'bg-purple-100 text-purple-600' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                            {getNotificationIcon(notification.notification_type)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
                                   <p className="font-medium text-xs leading-tight text-gray-900 line-clamp-1">{notification.title}</p>
                                   <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-1"></span>
-                                </div>
+                            </div>
                                 <p className="text-gray-600 text-xs mt-0.5 line-clamp-2 leading-snug">{notification.message}</p>
                                 <div className="flex items-center justify-between mt-1.5">
                                   <p className="text-gray-400 text-[10px] flex items-center gap-1">
                                     <Clock className="h-2.5 w-2.5" />
-                                    {formatNotificationTime(notification.created_at)}
-                                  </p>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMarkAsRead(notification.id);
-                                    }}
+                                {formatNotificationTime(notification.created_at)}
+                              </p>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMarkAsRead(notification.id);
+                                  }}
                                     className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-[10px] font-medium rounded-full py-0.5 px-2 hover:bg-blue-100/50 transition-colors duration-200"
-                                  >
+                                >
                                     <CheckCircle className="h-2.5 w-2.5" />
-                                    Mark read
-                                  </button>
-                                </div>
-                              </div>
+                                  Mark read
+                  </button>
                             </div>
-                          ))}
-                          
-                          <div className="p-3 text-center border-t">
-                            <Link 
-                              to="/profile?tab=notifications" 
-                              className="text-blue-600 text-xs font-medium hover:text-blue-700 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                              onClick={() => setMobileNotificationDropdownOpen(false)}
-                            >
-                              View all notifications
-                              <ExternalLink className="h-3 w-3" />
-                            </Link>
                           </div>
                         </div>
+                      ))}
+                      
+                          <div className="p-3 text-center border-t">
+                        <Link 
+                          to="/profile?tab=notifications" 
+                              className="text-blue-600 text-xs font-medium hover:text-blue-700 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                          onClick={() => setMobileNotificationDropdownOpen(false)}
+                        >
+                          View all notifications
+                              <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      </div>
+                    </div>
                       )}
                     </>
                   )}
-                </>
+                    </>
+                  )}
+                </div>
               )}
-            </div>
-          )}
               
           {/* Mobile Menu */}
           <div 

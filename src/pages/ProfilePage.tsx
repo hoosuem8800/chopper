@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Settings, Bell, Clock, MapPin, Phone, Calendar, X, AlertCircle, Edit, Mail, CheckCircle, Award, Settings2, Plus, Stethoscope, Eye, FileText, Pencil, ArrowLeft, ArrowRight, Lock, BellRing, Save } from 'lucide-react';
+import { User, Settings, Bell, Clock, MapPin, Phone, Calendar, X, AlertCircle, Edit, Mail, CheckCircle, Award, Settings2, Plus, Stethoscope, Eye, FileText, Pencil, ArrowLeft, ArrowRight, Lock, BellRing, Save, Loader2, Check } from 'lucide-react';
 import FloatingIcons from '@/components/FloatingIcons';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
@@ -27,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import { getProfilePictureUrl } from '@/services/api';
 import { LoaderCircle } from 'lucide-react';
+import { timeUtils } from '@/services/api';
 
 // Declare the global window property for TypeScript
 declare global {
@@ -593,13 +594,27 @@ const ProfilePage = () => {
     }
   };
 
-  // Format time for display
+  // Format time for display with consistent timezone handling
   const formatTime = (dateString) => {
     try {
       if (!dateString) return 'No time available';
+      
+      // Parse the date string into a Date object
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid time format';
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date format:', dateString);
+        return 'Invalid time format';
+      }
+      
+      // Format the time using the date-fns format function which handles timezones better
+      // than native JavaScript methods
+      return format(date, 'h:mm a'); // Example: "9:00 AM"
+      
+      // Alternative formats:
+      // return format(date, 'HH:mm'); // 24-hour format: "09:00"
+      // return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (error) {
       console.error('Error formatting time:', error);
       return 'Time unavailable';
@@ -607,11 +622,29 @@ const ProfilePage = () => {
   };
 
   const handleEdit = (appointment) => {
+    // Parse the appointment date_time field
     const appointmentDate = new Date(appointment.date_time);
+    
+    // Log appointment details for debugging
+    console.log('Editing appointment:', {
+      id: appointment.id,
+      originalDateTime: appointment.date_time,
+      parsedDate: appointmentDate,
+      localTimeString: format(appointmentDate, "HH:mm")
+    });
+    
+    // Set state for the dialog
     setSelectedAppointmentId(appointment.id.toString());
     setSelectedDate(appointmentDate);
-    setSelectedTime(format(appointmentDate, "HH:mm"));
-    setCurrentPage(1); // Reset to first page when editing
+    
+    // Extract just the time portion in the local timezone to prevent timezone shifts
+    const timeInLocalTimezone = format(appointmentDate, "HH:mm");
+    setSelectedTime(timeInLocalTimezone);
+    
+    // Reset to first page when editing
+    setCurrentPage(1);
+    
+    // Open the dialog
     setIsEditDialogOpen(true);
   };
 
@@ -845,29 +878,49 @@ const ProfilePage = () => {
     }
   };
 
+  // Create a timezone-aware date to ensure consistent timezone handling
+  const createTimezoneAwareDate = (dateObj: Date, timeString: string): Date => {
+    console.log('Creating timezone-aware date with:', { dateObj, timeString });
+    
+    // Format the date portion to ISO format YYYY-MM-DD
+    const dateString = format(dateObj, "yyyy-MM-dd");
+    
+    // Use the common timeUtils function for consistent date creation
+    return timeUtils.createTimezoneAwareDate(dateString, timeString);
+  };
+
   const handleTimeUpdate = async () => {
     if (!selectedAppointmentId || !selectedTime || !selectedDate) return;
     
     try {
       setUpdatingStatus(true);
-      // Combine date and time
-      const newDateTime = new Date(selectedDate);
-      const [hours, minutes] = selectedTime.split(':');
-      newDateTime.setHours(parseInt(hours), parseInt(minutes));
       
-      // Update the appointment using the appointmentService
+      console.log('Starting appointment update with:', {
+        appointmentId: selectedAppointmentId,
+        selectedDate: format(selectedDate, "yyyy-MM-dd"),
+        selectedTime
+      });
+      
+      // Create a date object from the selected date and time
+      const newDateTime = createTimezoneAwareDate(selectedDate, selectedTime);
+      const isoString = newDateTime.toISOString();
+      
+      console.log('Updating appointment with ISO string:', isoString);
+      
+      // Update the appointment using the appointmentService but keep status as 'confirmed'
       await appointmentService.updateAppointment(parseInt(selectedAppointmentId), {
-        date_time: newDateTime.toISOString(),
-        status: 'pending'
+        date_time: isoString,
+        status: 'confirmed'
       });
       
       // Update local state after successful API call
       const updatedAppointments = appointments.map(apt => 
         apt.id === selectedAppointmentId 
-          ? { ...apt, status: 'pending', date_time: newDateTime.toISOString() }
+          ? { ...apt, status: 'confirmed', date_time: isoString }
           : apt
-      ).sort((a, b) => new Date(b.date_time).getTime() - new Date(a.date_time).getTime()); // Sort after update
+      ).sort((a, b) => new Date(b.date_time).getTime() - new Date(a.date_time).getTime());
       
+      // Update appointments state with the new array
       setAppointments(updatedAppointments);
       
       // Reset to page 1 after modification
@@ -876,8 +929,10 @@ const ProfilePage = () => {
       setIsEditDialogOpen(false);
       toast({
         title: "Appointment Updated",
-        description: "Your appointment has been updated and is pending confirmation.",
+        description: "Your appointment has been rescheduled successfully.",
       });
+      
+      customToast.success("Appointment rescheduled successfully");
     } catch (error) {
       console.error('Failed to update appointment time:', error);
       toast({
@@ -890,42 +945,67 @@ const ProfilePage = () => {
     }
   };
 
-  const fetchAvailableTimeSlots = async (date) => {
-    try {
-      // Use hardcoded time slots for now since the endpoint is not available
-      const defaultTimeSlots = [
+  const [allTimeSlots] = useState<string[]>([
         "09:00",
         "10:00",
         "11:00",
         "14:00",
         "15:00",
         "16:00"
-      ];
+  ]);
+  
+  const [takenTimeSlots, setTakenTimeSlots] = useState<string[]>([]);
+
+  // Check if a slot is available - improved to handle different time formats
+  const isSlotAvailable = (time: string): boolean => {
+    // If the time is in 24-hour format, also check its 12-hour equivalent
+    if (!time.includes('AM') && !time.includes('PM')) {
+      // Time is likely in 24-hour format, check both formats
+      const time12h = timeUtils.to12Hour(time);
+      return !takenTimeSlots.includes(time) && !takenTimeSlots.includes(time12h);
+    }
+    
+    // If the time is in 12-hour format, also check its 24-hour equivalent
+    const time24h = timeUtils.to24Hour(time);
+    return !takenTimeSlots.includes(time) && !takenTimeSlots.includes(time24h);
+  };
+
+  const fetchAvailableTimeSlots = async (date: Date) => {
+    try {
+      // Format date for API call
+      const formattedDate = format(date, "yyyy-MM-dd");
+      console.log(`Fetching taken slots for date: ${formattedDate}`);
       
-      setAvailableTimeSlots(defaultTimeSlots);
+      const takenSlotsResponse = await appointmentService.getTakenSlots(formattedDate);
+      let newTakenSlots: string[] = [];
       
-      // Uncomment this when the backend endpoint is ready
-      /*
-      const response = await api.get(`/appointments/available-slots/?date=${format(date, 'yyyy-MM-dd')}`);
-      setAvailableTimeSlots(response.data);
-      */
+      // Extract taken slots from the response - should include both formats now
+      if (takenSlotsResponse && takenSlotsResponse.data) {
+        newTakenSlots = takenSlotsResponse.data;
+        console.log('Received taken slots (both formats):', newTakenSlots);
+      }
+      
+      setTakenTimeSlots(newTakenSlots);
+      
+      // Filter available slots (all slots that aren't taken)
+      const availableSlots = allTimeSlots.filter(slot => isSlotAvailable(slot));
+      console.log('Available slots after filtering:', availableSlots);
+      
+      setAvailableTimeSlots(availableSlots.length > 0 ? availableSlots : []);
+      
+      // If currently selected time is now taken, deselect it
+      if (selectedTime && !isSlotAvailable(selectedTime)) {
+        setSelectedTime("");
+      toast({
+          title: "Time Unavailable",
+          description: "The previously selected time slot is no longer available.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Error fetching time slots:', error);
-      // Set default time slots as fallback
-      setAvailableTimeSlots([
-        "09:00",
-        "10:00",
-        "11:00",
-        "14:00",
-        "15:00",
-        "16:00"
-      ]);
-      
-      toast({
-        title: "Note",
-        description: "Using default time slots",
-        variant: "default",
-      });
+      setTakenTimeSlots([]);
+      setAvailableTimeSlots(allTimeSlots);
     }
   };
 
@@ -986,6 +1066,15 @@ const ProfilePage = () => {
     
     // No significant changes that would require a refresh
     return false;
+  };
+
+  // Format the time slot for display (convert 24h to 12h format with AM/PM)
+  const formatTimeSlotForDisplay = (timeSlot: string): string => {
+    // If already in 12-hour format, return as is
+    if (timeSlot.includes('AM') || timeSlot.includes('PM')) {
+      return timeSlot;
+    }
+    return timeUtils.to12Hour(timeSlot);
   };
 
   if (loading && !profileData) {
@@ -1724,13 +1813,143 @@ const ProfilePage = () => {
                         )}>
                           {consultations[currentConsultationPage - 1] && (
                             <div className="bg-white rounded-lg shadow-sm border relative overflow-hidden min-h-[360px] sm:min-h-[460px]">
-                              {/* Content for consultation card */}
-                              <div className="p-4">Consultation details</div>
+                              {/* Status Strip */}
+                              <div 
+                                className={cn(
+                                  "h-2 w-full",
+                                  consultations[currentConsultationPage - 1].status === "confirmed" && "bg-cyan-500",
+                                  consultations[currentConsultationPage - 1].status === "scheduled" && "bg-primary",
+                                  consultations[currentConsultationPage - 1].status === "pending" && "bg-yellow-400",
+                                  consultations[currentConsultationPage - 1].status === "completed" && "bg-green-500",
+                                  consultations[currentConsultationPage - 1].status === "cancelled" && "bg-red-500",
+                                  !consultationAnimating && "animate-pulse-soft"
+                                )}
+                              />
+                              
+                              <div className="p-5">
+                                {/* Status Badge and Type */}
+                                <div className="flex justify-between items-start mb-5">
+                                  <Badge 
+                                    variant={
+                                      consultations[currentConsultationPage - 1].status === "scheduled" ? "default" :
+                                      consultations[currentConsultationPage - 1].status === "pending" ? "outline" :
+                                      consultations[currentConsultationPage - 1].status === "completed" ? "success" :
+                                      consultations[currentConsultationPage - 1].status === "cancelled" ? "destructive" :
+                                      "secondary"
+                                    }
+                                    className={cn(
+                                      "capitalize px-3 py-1",
+                                      consultations[currentConsultationPage - 1].status === "cancelled" && "bg-red-500 hover:bg-red-500"
+                                    )}
+                                  >
+                                    {consultations[currentConsultationPage - 1].status}
+                                  </Badge>
+                                  <span className="text-sm font-medium text-cyan-500">
+                                    {consultations[currentConsultationPage - 1].consultation_type === 'follow_up' ? 'Follow-up Consultation' : 
+                                     consultations[currentConsultationPage - 1].consultation_type === 'scan' ? 'Scan Consultation' : 
+                                     'General Consultation'}
+                                  </span>
+                                </div>
+
+                                {/* Doctor Information */}
+                                <div className="mb-6">
+                                  <div className="flex items-center gap-2 mb-3 text-cyan-500">
+                                    <Stethoscope className="h-4 w-4" />
+                                    <div className="text-xs font-medium uppercase">Doctor Information</div>
+                                  </div>
+                                  <div className="space-y-3 p-4 bg-gray-50/80 rounded-lg border border-gray-100">
+                                    <div className="flex items-center gap-2">
+                                      <User className="h-3.5 w-3.5 text-gray-500" />
+                                      <span className="text-sm text-gray-700">
+                                        {consultations[currentConsultationPage - 1].doctor_name || 
+                                          (consultations[currentConsultationPage - 1].doctor ? 
+                                            `Dr. ${consultations[currentConsultationPage - 1].doctor.first_name || ''} ${consultations[currentConsultationPage - 1].doctor.last_name || ''}` : 
+                                            'Doctor')}
+                                      </span>
+                                    </div>
+                                    {consultations[currentConsultationPage - 1].doctor_phone && (
+                                      <div className="flex items-center gap-2">
+                                        <Phone className="h-3.5 w-3.5 text-gray-500" />
+                                        <span className="text-sm text-gray-700">
+                                          {consultations[currentConsultationPage - 1].doctor_phone}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Time Details */}
+                                <div className="mb-6">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <Clock className="h-4 w-4 text-primary" />
+                                    <div className="text-xs font-medium text-gray-500 uppercase">Time Details</div>
+                                  </div>
+                                  <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/10">
+                                    <div className="flex items-center gap-2">
+                                      <Calendar className="h-3.5 w-3.5 text-gray-500" />
+                                      <span className="text-sm text-gray-700 font-medium">
+                                        {formatDate(consultations[currentConsultationPage - 1].date_time || consultations[currentConsultationPage - 1].created_at)}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="h-3.5 w-3.5 text-gray-500" />
+                                      <span className="text-sm text-gray-700 font-medium">
+                                        {formatTime(consultations[currentConsultationPage - 1].date_time || consultations[currentConsultationPage - 1].created_at)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Notes */}
+                                {consultations[currentConsultationPage - 1].notes && (
+                                  <div className="mb-6">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <FileText className="h-4 w-4 text-primary" />
+                                      <div className="text-xs font-medium text-gray-500 uppercase">Notes</div>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                      <p className="text-sm text-gray-700">
+                                        {consultations[currentConsultationPage - 1].notes}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Cancelled Overlay */}
+                                {consultations[currentConsultationPage - 1].status === "cancelled" && (
+                                  <>
+                                    <div 
+                                      className="absolute inset-0 bg-[length:10px_10px]"
+                                      style={{
+                                        backgroundImage: `repeating-linear-gradient(
+                                          45deg,
+                                          rgb(239 68 68 / 0.05),
+                                          rgb(239 68 68 / 0.05) 10px,
+                                          transparent 10px,
+                                          transparent 20px
+                                        )`
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px]" />
+                                    <div className="absolute inset-0 border-2 border-red-200 rounded-lg" />
+                                    <div className="absolute inset-[6px] border border-red-300/50 rounded-lg" />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className="relative transform -rotate-6">
+                                        <div className="absolute -inset-1 bg-gradient-to-r from-red-500/30 via-red-600/30 to-red-500/30 rounded-lg blur-lg animate-pulse" />
+                                        <div className="relative flex items-center bg-red-500 text-white px-6 py-2 rounded-lg shadow-lg">
+                                          <X className="h-5 w-5 mr-2 animate-bounce" />
+                                          <span className="font-bold text-lg">CANCELLED</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
 
                                 {/* Actions */}
                                 {consultations[currentConsultationPage - 1].status !== "cancelled" && 
                                  consultations[currentConsultationPage - 1].status !== "completed" && (
-                                <div className="flex justify-end gap-3 p-4">
+                              <div className="flex justify-end gap-3 p-4 border-t border-gray-100">
                                     <Button
                                       variant="destructive"
                                       size="sm"
@@ -1782,7 +2001,95 @@ const ProfilePage = () => {
           </div>
         
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          {/* Dialog content - leave as is */}
+          <DialogContent className="sm:max-w-md min-w-[280px] p-4" style={{ borderRadius: "0.5rem", border: "1px solid rgba(226, 232, 240, 1)" }}>
+            <DialogHeader className="pb-2">
+              <DialogTitle className="text-lg font-semibold text-primary">Edit Appointment</DialogTitle>
+              <DialogDescription>
+                Update your appointment date and time.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-3">
+              <div className="grid gap-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={selectedDate ? format(selectedDate, "yyyy-MM-dd") : ''}
+                  onChange={(e) => {
+                    setSelectedDate(new Date(e.target.value));
+                  }}
+                  className="w-full"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="time">Time Slot</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[200px] overflow-y-auto bg-blue-50/30 p-3 rounded-xl">
+                  {/* Display all time slots (both available and taken) */}
+                  {allTimeSlots.map((time, index) => {
+                    const isAvailable = isSlotAvailable(time);
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => isAvailable && setSelectedTime(time)}
+                        className={cn(
+                          "relative p-3 border-2 rounded-xl transition-all",
+                          selectedTime === time 
+                            ? 'border-transparent bg-gradient-to-br from-primary to-blue-500 text-white transform scale-105 shadow-md'
+                            : isAvailable
+                              ? 'border-primary bg-white hover:bg-blue-50 hover:-translate-y-1 cursor-pointer'
+                              : 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-70'
+                        )}
+                      >
+                        <div className="text-center font-medium">
+                          {formatTimeSlotForDisplay(time)}
+                          {!isAvailable && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-100/90 rounded-xl">
+                              <div className="flex items-center gap-1 text-cyan-500">
+                                <Lock className="h-4 w-4" />
+                                <span className="text-sm">Taken</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {selectedTime === time && (
+                          <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow">
+                            <Check className="h-4 w-4 text-primary" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {selectedTime === "" && (
+                  <p className="text-amber-600 text-xs mt-1">
+                    Please select an available time slot
+                  </p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleTimeUpdate}
+                disabled={updatingStatus}
+              >
+                {updatingStatus ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Appointment"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
         </Dialog>
         
         {/* Profile Picture Editor - Modal dialog only */}
