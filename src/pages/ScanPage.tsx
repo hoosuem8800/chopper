@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Upload, History, AlertCircle, FileText, CheckCircle, Loader2, Cloud, ArrowLeft, PartyPopper, FilterX, SortDesc, SortAsc, Lock, Zap, FileX, CalendarPlus, Folder, X, ArrowRight } from 'lucide-react';
+import { Upload, History, AlertCircle, FileText, CheckCircle, Loader2, Cloud, ArrowLeft, PartyPopper, FilterX, SortDesc, SortAsc, Lock, Zap, FileX, CalendarPlus, Folder, X, ArrowRight, Download } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, appointmentService, scanService, xrayService } from '@/services/api';
 import { format } from 'date-fns';
@@ -504,6 +504,520 @@ const ScanPage = () => {
     }
   };
 
+  // Add PDF download function
+  const handleDownloadPDF = () => {
+    // Get the prediction result container element
+    const element = document.getElementById('prediction-result');
+    if (!element) return;
+    
+    // Create a new blob with the prediction data
+    const data = JSON.stringify(predictionResult, null, 2);
+    const prediction = predictionResult?.prediction || 'Result';
+    const date = format(new Date(), "yyyy-MM-dd");
+    const filename = `scan-report-${prediction.toLowerCase()}-${date}.pdf`;
+    
+    // Convert prediction data to HTML content with improved styling
+    // eslint-disable-next-line
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Chopper Scan Report</title>
+          <style>
+            :root {
+              --primary-color: #00C1D4;
+              --highlight-blue: #3b82f6;
+              --tw-gradient-from-position: ;
+              --tw-gradient-to-position: ;
+            }
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+            body {
+              font-family: 'Inter', sans-serif;
+              padding: 15px;
+              color: #333;
+              max-width: 800px;
+              margin: 0 auto;
+              line-height: 1.4;
+              font-size: 18pt;
+            }
+            /* Print-specific styles to ensure single page */
+            @media print {
+              body {
+                padding: 0;
+                margin: 0;
+              }
+              .report-container {
+                page-break-inside: avoid;
+                max-height: 100%;
+                overflow: hidden;
+                margin-top: 15mm; /* Add top margin for print */
+              }
+              @page {
+                size: A4;
+                margin: 10mm;
+                margin-top: 20mm; /* Add extra top margin */
+                /* Remove page headers and footers */
+                margin-header: 0;
+                margin-footer: 0;
+                marks: none;
+              }
+              /* Hide all headers and footers added by the browser */
+              html {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              /* Remove URL, page numbers, date from print */
+              @page :first {
+                margin-top: 0;
+              }
+              @page :left {
+                margin-left: 0;
+              }
+              @page :right {
+                margin-right: 0;
+              }
+              @page :footer {
+                display: none;
+              }
+              @page :header {
+                display: none;
+              }
+            }
+            .report-container {
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 12px 16px;
+              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
+              color: white;
+            }
+            .logo-section {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 4px;
+            }
+            .logo {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 24px;
+              font-weight: bold;
+              color: #00C1D4;
+            }
+            .logo-icon {
+              background-color: #00C1D4;
+              color: white;
+              width: 32px;
+              height: 32px;
+              border-radius: 6px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .logo-text {
+              --tw-gradient-from: var(--primary-color) var(--tw-gradient-from-position);
+              --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
+              --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+              --tw-gradient-to: var(--highlight-blue) var(--tw-gradient-to-position);
+              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              font-size: 24px;
+              letter-spacing: -0.5px;
+            }
+            .logo-tagline {
+              font-size: 12px;
+              color: #64748b;
+              font-weight: 500;
+              margin-left: 40px;
+              letter-spacing: 0.5px;
+            }
+            h1 {
+              margin: 0;
+              color: ${predictionResult?.prediction === 'Normal' ? '#15803d' : '#b91c1c'};
+              font-size: 20px;
+              font-weight: bold;
+            }
+            .confidence {
+              background-color: ${predictionResult?.prediction === 'Normal' ? '#bbf7d0' : '#fecaca'};
+              color: ${predictionResult?.prediction === 'Normal' ? '#166534' : '#b91c1c'};
+              padding: 6px 12px;
+              border-radius: 16px;
+              font-weight: bold;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+            }
+            .summary {
+              background-color: ${predictionResult?.prediction === 'Normal' ? '#f0fdf4' : '#fef2f2'};
+              padding: 12px 16px;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            .summary p {
+              margin: 0;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+            .content {
+              padding: 16px;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 16px;
+            }
+            .section {
+              background-color: white;
+              border: 1px solid #e5e7eb;
+              border-radius: 6px;
+              padding: 12px;
+            }
+            .section h2 {
+              font-size: 16px;
+              margin-top: 0;
+              margin-bottom: 8px;
+              color: #4b5563;
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              border-bottom: 1px solid #f3f4f6;
+              padding-bottom: 6px;
+            }
+            .section h2 svg {
+              flex-shrink: 0;
+              width: 14px;
+              height: 14px;
+            }
+            .row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 6px;
+            }
+            .label {
+              color: #6b7280;
+              font-size: 12px;
+            }
+            .value {
+              font-weight: 500;
+              font-size: 12px;
+            }
+            .value.highlight {
+              color: ${predictionResult?.prediction === 'Normal' ? '#16a34a' : '#dc2626'};
+              font-weight: 600;
+            }
+            .probabilities {
+              grid-column: 1 / -1;
+            }
+            .recommendations {
+              grid-column: 1 / -1;
+              background-color: #f9fafb;
+            }
+            ul {
+              margin: 6px 0;
+              padding-left: 20px;
+            }
+            li {
+              margin-bottom: 2px;
+              font-size: 12px;
+            }
+            .row-probabilities {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 4px 0;
+              border-bottom: 1px dashed #f3f4f6;
+            }
+            .probability-bar {
+              flex-grow: 1;
+              height: 4px;
+              background-color: #e5e7eb;
+              border-radius: 2px;
+              margin: 0 12px;
+              overflow: hidden;
+              width: 100%;
+              max-width: 100px;
+            }
+            .probability-value {
+              height: 100%;
+              background-color: #00C1D4;
+              border-radius: 2px;
+            }
+            .current {
+              background-color: ${predictionResult?.prediction === 'Normal' ? '#15803d' : '#b91c1c'};
+            }
+            svg {
+              width: 14px;
+              height: 14px;
+            }
+            
+            /* Download button */
+            .download-button {
+              display: inline-block;
+              margin: 20px auto;
+              padding: 10px 20px;
+              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
+              color: white;
+              border-radius: 5px;
+              text-decoration: none;
+              font-weight: bold;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            }
+            
+            .download-button:hover {
+              background: linear-gradient(to right, var(--highlight-blue), var(--primary-color));
+              transform: translateY(-1px);
+              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Print button */
+            .print-button {
+              display: inline-block;
+              margin: 20px 10px;
+              padding: 10px 20px;
+              background: linear-gradient(to right, #4b5563, #6b7280);
+              color: white;
+              border-radius: 5px;
+              text-decoration: none;
+              font-weight: bold;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            }
+            
+            .print-button:hover {
+              background: linear-gradient(to right, #6b7280, #4b5563);
+              transform: translateY(-1px);
+              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            }
+            
+            .button-container {
+              text-align: center;
+              margin-top: 20px;
+            }
+            
+            @media print {
+              .button-container {
+                display: none;
+              }
+            }
+            
+            /* Image styling */
+            .scan-image {
+              width: 100%;
+              max-height: 150px;
+              object-fit: contain;
+              border-radius: 4px;
+              border: 1px solid #e5e7eb;
+              margin-bottom: 8px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="report-container">
+            <div class="header">
+              <div class="logo-section">
+                <div class="logo">
+                  <div class="logo-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                    </svg>
+                  </div>
+                  <span class="logo-text">Chopper</span>
+                </div>
+                <div class="logo-tagline">Medical Scan Report</div>
+              </div>
+              <div class="confidence">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m12 14 4-4" />
+                  <path d="M12 14v7" />
+                  <path d="M12 14v-4a2 2 0 0 1 2-2c2.4 0 4.5 1.8 4.5 4a4.5 4.5 0 1 1-9 0" />
+                  <path d="M12 3v4" />
+                </svg>
+                ${typeof predictionResult?.confidence === 'number' 
+                  ? (predictionResult.confidence > 1 
+                    ? predictionResult.confidence.toFixed(1) 
+                    : (predictionResult.confidence * 100).toFixed(1)) 
+                  : predictionResult?.confidence}% Confidence
+              </div>
+            </div>
+            
+            <div class="summary">
+              <h1>
+                ${predictionResult?.prediction === 'Normal' ? 'Normal Scan Result' : 
+                 predictionResult?.prediction === 'Pneumonia' ? 'Pneumonia Detected' : 
+                 'Lung Opacity Detected'}
+              </h1>
+              <p>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="${predictionResult?.prediction === 'Normal' 
+                    ? 'M8 12l2 2 4-4' 
+                    : 'M12 8v4M12 16h.01'}"
+                  ></path>
+                </svg>
+                ${predictionResult?.prediction === 'Normal' 
+                ? 'No signs of abnormality were detected in this scan.' 
+                : predictionResult?.prediction === 'Pneumonia'
+                  ? 'Signs of pneumonia were detected. Please consult with a healthcare professional.'
+                  : 'Lung opacity was detected. Please consult with a healthcare professional.'}
+              </p>
+            </div>
+            
+            <div class="content">
+              <div class="section">
+                <h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <path d="M14 2v6h6"></path>
+                    <path d="M16 13H8"></path>
+                    <path d="M16 17H8"></path>
+                    <path d="M10 9H8"></path>
+                  </svg>
+                  Scan Details
+                </h2>
+                <div class="row">
+                  <span class="label">Result Status</span>
+                  <span class="value highlight">${predictionResult?.prediction}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Report ID</span>
+                  <span class="value">${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</span>
+                </div>
+              </div>
+
+              <div class="section">
+                <h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.2 7.8l-7.7 7.7-4-4-5.7 5.7"></path>
+                    <path d="M15 7h6v6"></path>
+                  </svg>
+                  Confidence Metrics
+                </h2>
+                <div class="row">
+                  <span class="label">Model Confidence</span>
+                  <span class="value">${typeof predictionResult?.confidence === 'number' 
+                    ? (predictionResult.confidence > 1 
+                      ? predictionResult.confidence.toFixed(1) 
+                      : (predictionResult.confidence * 100).toFixed(1)) 
+                    : predictionResult?.confidence}%</span>
+                </div>
+                <div class="row">
+                  <span class="label">Analysis Type</span>
+                  <span class="value">AI-Powered Detection</span>
+                </div>
+              </div>
+
+              ${predictionResult?.classProbs ? `
+              <div class="section probabilities">
+                <h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M2 12h10"></path>
+                    <path d="M12 2v10"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9 16l3 3 8-8"></path>
+                  </svg>
+                  Classification Probabilities
+                </h2>
+                ${Object.entries(predictionResult.classProbs as Record<string, number>).map(([className, prob]) => {
+                  const percentage = typeof prob === 'number' 
+                    ? (prob > 1 ? prob : prob * 100).toFixed(1)
+                    : prob;
+                  return `
+                    <div class="row-probabilities">
+                      <span class="label">${className}</span>
+                      <div class="probability-bar">
+                        <div class="probability-value ${className === predictionResult.prediction ? 'current' : ''}" style="width: ${percentage}%"></div>
+                      </div>
+                      <span class="value ${className === predictionResult.prediction ? 'highlight' : ''}">
+                        ${percentage}%
+                      </span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+              ` : ''}
+
+              <div class="section recommendations">
+                <h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <path d="M22 4 12 14.01l-3-3"></path>
+                  </svg>
+                  Recommendations
+                </h2>
+                ${predictionResult?.prediction === 'Normal' 
+                  ? `<p>Your scan appears normal. However, if you experience any symptoms or concerns, 
+                     please consult with a healthcare professional for further evaluation.</p>`
+                  : `<p>Based on the analysis, ${predictionResult?.prediction === 'Pneumonia' ? 'signs of pneumonia' : 'lung opacity'} were detected. We recommend:</p>
+                     <ul>
+                       <li>Schedule a consultation with a healthcare professional</li>
+                       <li>Monitor your symptoms closely</li>
+                       <li>Follow up with additional tests if recommended</li>
+                     </ul>`
+                }
+              </div>
+            </div>
+          </div>
+          
+          <div class="button-container">
+            <button class="print-button" onclick="window.print()">Print as PDF</button>
+            <button class="download-button" onclick="window.close()">Close</button>
+          </div>
+          
+          <script>
+            // Auto-print when the page loads
+            window.onload = function() {
+              // Set print settings to hide headers and footers
+              const style = document.createElement('style');
+              style.textContent = '@page { margin: 10mm; size: A4; }';
+              document.head.appendChild(style);
+              
+              // Focus on content only
+              document.body.classList.add('print-only-content');
+              
+              // Show a message to guide the user
+              setTimeout(() => {
+                alert("To save as PDF: Click 'Print' button, then select 'Save as PDF' as the destination in the print dialog.");
+              }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `;
+    
+    // Create a Blob with the HTML content
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    // Open the HTML content in a new window for printing/saving as PDF
+    const printWindow = window.open(url, '_blank');
+    
+    if (printWindow) {
+      // Add script to trigger print dialog after content loads
+      printWindow.onload = function() {
+        printWindow.document.title = filename;
+      };
+    } else {
+      // If popup is blocked, provide direct download link
+      customToast.error("Pop-up blocked. Please allow pop-ups for this site to download the PDF.");
+      
+      // Create a temporary link to download the HTML file
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.replace('.pdf', '.html');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
+  };
+
   const renderPredictionResult = () => {
     if (!predictionResult) return null;
 
@@ -555,13 +1069,28 @@ const ScanPage = () => {
                 </p>
               </div>
             </div>
-            <div className={cn(
-              "px-4 py-2 rounded-full text-sm font-medium",
-              isNormal 
-                ? "bg-green-100 text-green-800 ring-1 ring-green-600/20" 
-                : "bg-red-100 text-red-800 ring-1 ring-red-600/20"
-            )}>
-              {confidence}% Confidence
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "px-4 py-2 rounded-full text-sm font-medium",
+                isNormal 
+                  ? "bg-green-100 text-green-800 ring-1 ring-green-600/20" 
+                  : "bg-red-100 text-red-800 ring-1 ring-red-600/20"
+              )}>
+                {confidence}% Confidence
+              </div>
+              {/* Download PDF Button */}
+              <button
+                onClick={handleDownloadPDF}
+                className={cn(
+                  "p-2 rounded-full transition-all duration-300 flex items-center justify-center",
+                  isNormal 
+                    ? "bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 ring-1 ring-green-600/20" 
+                    : "bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 ring-1 ring-red-600/20"
+                )}
+                title="Download as PDF"
+              >
+                <Download className="w-5 h-5" />
+              </button>
             </div>
           </div>
 
@@ -581,7 +1110,7 @@ const ScanPage = () => {
                       "font-medium",
                       isNormal ? "text-green-600" : "text-red-600"
                     )}>
-                      {prediction}
+                      {predictionResult.prediction}
                     </span>
                   </div>
                 </div>
@@ -592,7 +1121,16 @@ const ScanPage = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Model Confidence</span>
-                    <span className="font-medium">{confidence}%</span>
+                    <span className="font-medium">
+                      {(() => {
+                        // Safe string conversion
+                        const confidenceValue = predictionResult.confidence;
+                        if (typeof confidenceValue === 'number') {
+                          return `${confidenceValue > 1 ? confidenceValue.toFixed(1) : (confidenceValue * 100).toFixed(1)}%`;
+                        }
+                        return `${String(confidenceValue)}%`;
+                      })()}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Analysis Type</span>
@@ -612,7 +1150,7 @@ const ScanPage = () => {
                       <span className="text-gray-500">{className}</span>
                       <span className={cn(
                         "font-medium",
-                        className === prediction ? "text-blue-600 font-bold" : ""
+                        className === predictionResult.prediction ? "text-blue-600 font-bold" : ""
                       )}>
                         {(() => {
                           if (typeof prob === 'number') {
@@ -627,48 +1165,24 @@ const ScanPage = () => {
               </div>
             )}
 
-            {/* Recommendations Section */}
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Recommendations</h4>
-              {isNormal ? (
-                <p className="text-sm text-gray-600">
-                  Your scan appears normal. However, if you experience any symptoms or concerns, 
-                  please consult with a healthcare professional for further evaluation.
-                </p>
-              ) : (
-                <div>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Based on the analysis, {isPneumonia ? "signs of pneumonia" : "lung opacity"} were detected. We recommend:
-                  </p>
-                  <ul className="list-disc list-inside space-y-1.5 text-sm text-gray-600 pl-1 mb-4">
-                    <li>Schedule a consultation with a healthcare professional</li>
-                    <li>Monitor your symptoms closely</li>
-                    <li>Follow up with additional tests if recommended</li>
-                  </ul>
-                  <Button
-                    onClick={() => navigate('/consultation')}
-                    className="mt-2 relative group overflow-hidden bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-300 text-sm px-6 py-2.5 rounded-lg"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      Schedule Consultation
-                      <svg 
-                        className="h-4 w-4 transform transition-all duration-300 group-hover:translate-x-1" 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        width="24" 
-                        height="24" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor"
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </span>
-                  </Button>
-                </div>
-              )}
+            <div className="section recommendations">
+              <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <path d="M22 4 12 14.01l-3-3"></path>
+                </svg>
+                Recommendations
+              </h2>
+              ${predictionResult?.prediction === 'Normal' 
+                ? `<p>Your scan appears normal. However, if you experience any symptoms or concerns, 
+                   please consult with a healthcare professional for further evaluation.</p>`
+                : `<p>Based on the analysis, ${predictionResult?.prediction === 'Pneumonia' ? 'signs of pneumonia' : 'lung opacity'} were detected. We recommend:</p>
+                   <ul>
+                     <li>Schedule a consultation with a healthcare professional</li>
+                     <li>Monitor your symptoms closely</li>
+                     <li>Follow up with additional tests if recommended</li>
+                   </ul>`
+              }
             </div>
           </div>
         </div>
@@ -868,7 +1382,10 @@ const ScanPage = () => {
         
         try {
           // First try direct fetch with secure URL
-          const response = await fetch(secureImageUrl);
+          const response = await fetch(secureImageUrl, {
+            credentials: 'include',
+            mode: 'cors'
+          });
           
           if (!response.ok) {
             throw new Error(`Failed to fetch image directly: ${response.status}`);
@@ -888,18 +1405,84 @@ const ScanPage = () => {
             throw new Error("Authentication required");
           }
           
+          try {
+            // Try a direct authenticated fetch first
+            const authResponse = await fetch(secureImageUrl, {
+              headers: {
+                'Authorization': `Token ${token}`,
+              },
+              credentials: 'include'
+            });
+            
+            if (authResponse.ok) {
+              const authBlob = await authResponse.blob();
+              const authFile = new File([authBlob], `xray-${numericId}.jpg`, { type: authBlob.type || 'image/jpeg' });
+              
+              // Submit for analysis
+              await handleAnalyzeScan(authFile, 'quickscan');
+              return;
+            }
+          } catch (authFetchError) {
+            console.error("Authenticated direct fetch failed, trying proxy:", authFetchError);
+          }
+          
           const encodedUrl = encodeURIComponent(imageUrl);
-          const proxyUrl = `${import.meta.env.DEV ? 'http://localhost:8000' : 'https://backends-production-d57e.up.railway.app'}/api/proxy-image/?url=${encodedUrl}`;
+          // Use HTTPS for proxy URL in both development and production
+          const proxyUrl = `${import.meta.env.DEV ? 'https://localhost:8000' : 'https://backends-production-d57e.up.railway.app'}/api/proxy-image/?url=${encodedUrl}`;
           
           console.log("Attempting proxy fetch from:", proxyUrl);
+          // Refresh token from localStorage to ensure it's current
+          const currentToken = localStorage.getItem('token');
+          
+          if (!currentToken) {
+            console.error("No authentication token found for proxy request");
+            throw new Error("Authentication required for image proxy");
+          }
+          
           const proxyResponse = await fetch(proxyUrl, {
             headers: {
-              'Authorization': `Token ${token}`
-            }
+              'Authorization': `Token ${currentToken}`,
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'include',
+            mode: 'cors'
           });
           
           if (!proxyResponse.ok) {
-            throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+            console.error(`Proxy fetch failed with status: ${proxyResponse.status}`);
+            const errorText = await proxyResponse.text();
+            console.error(`Error response: ${errorText}`);
+            
+            // Use a placeholder image as a last resort
+            console.log("Using placeholder image as fallback");
+            customToast.warning("Using placeholder image due to fetch issues. Results may not be accurate.");
+            
+            // Create a simple placeholder image
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.fillStyle = '#f0f0f0';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.font = '24px Arial';
+              ctx.fillStyle = '#666';
+              ctx.textAlign = 'center';
+              ctx.fillText('Image Unavailable', canvas.width/2, canvas.height/2);
+              ctx.fillText(`ID: ${numericId}`, canvas.width/2, canvas.height/2 + 40);
+              
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  const file = new File([blob], `placeholder-${numericId}.jpg`, { type: 'image/jpeg' });
+                  handleAnalyzeScan(file, 'quickscan').catch(console.error);
+                } else {
+                  throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+                }
+              }, 'image/jpeg');
+              return;
+            } else {
+              throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+            }
           }
           
           const proxyBlob = await proxyResponse.blob();
@@ -946,17 +1529,20 @@ const ScanPage = () => {
               
               try {
                 // First try direct fetch with secure URL
-                const response = await fetch(secureImageUrl);
+                const response = await fetch(secureImageUrl, {
+                  credentials: 'include',
+                  mode: 'cors'
+                });
                 
-            if (!response.ok) {
+                if (!response.ok) {
                   throw new Error(`Failed to fetch image: ${response.status}`);
-            }
-            
-            const blob = await response.blob();
+                }
+                
+                const blob = await response.blob();
                 const file = new File([blob], `xray-appointment-${appointmentId}.jpg`, { type: blob.type || 'image/jpeg' });
-            
-            // Submit for analysis
-            await handleAnalyzeScan(file);
+                
+                // Submit for analysis
+                await handleAnalyzeScan(file);
               } catch (fetchError) {
                 console.error("Direct fetch failed for appointment image, trying proxy:", fetchError);
                 
@@ -966,17 +1552,74 @@ const ScanPage = () => {
                   throw new Error("Authentication required");
                 }
                 
+                try {
+                  // Try a direct authenticated fetch first
+                  const authResponse = await fetch(secureImageUrl, {
+                    headers: {
+                      'Authorization': `Token ${token}`,
+                    },
+                    credentials: 'include'
+                  });
+                  
+                  if (authResponse.ok) {
+                    const authBlob = await authResponse.blob();
+                    const authFile = new File([authBlob], `xray-appointment-${appointmentId}.jpg`, { type: authBlob.type || 'image/jpeg' });
+                    
+                    // Submit for analysis
+                    await handleAnalyzeScan(authFile);
+                    return;
+                  }
+                } catch (authFetchError) {
+                  console.error("Authenticated direct fetch failed for appointment image, trying proxy:", authFetchError);
+                }
+                
                 const encodedUrl = encodeURIComponent(imageUrl);
-                const proxyUrl = `${import.meta.env.DEV ? 'http://localhost:8000' : 'https://backends-production-d57e.up.railway.app'}/api/proxy-image/?url=${encodedUrl}`;
+                const proxyUrl = `${import.meta.env.DEV ? 'https://localhost:8000' : 'https://backends-production-d57e.up.railway.app'}/api/proxy-image/?url=${encodedUrl}`;
                 
                 const proxyResponse = await fetch(proxyUrl, {
                   headers: {
-                    'Authorization': `Token ${token}`
-                  }
+                    'Authorization': `Token ${token}`,
+                    'X-Requested-With': 'XMLHttpRequest'
+                  },
+                  credentials: 'include',
+                  mode: 'cors'
                 });
                 
                 if (!proxyResponse.ok) {
-                  throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+                  console.error(`Proxy fetch failed with status: ${proxyResponse.status}`);
+                  const errorText = await proxyResponse.text();
+                  console.error(`Error response: ${errorText}`);
+                  
+                  // Use a placeholder image as a last resort
+                  console.log("Using placeholder image as fallback for appointment");
+                  customToast.warning("Using placeholder image due to fetch issues. Results may not be accurate.");
+                  
+                  // Create a simple placeholder image
+                  const canvas = document.createElement('canvas');
+                  canvas.width = 512;
+                  canvas.height = 512;
+                  const ctx = canvas.getContext('2d');
+                  if (ctx) {
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.font = '24px Arial';
+                    ctx.fillStyle = '#666';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Image Unavailable', canvas.width/2, canvas.height/2);
+                    ctx.fillText(`Appointment ID: ${appointmentId}`, canvas.width/2, canvas.height/2 + 40);
+                    
+                    canvas.toBlob((blob) => {
+                      if (blob) {
+                        const file = new File([blob], `placeholder-appointment-${appointmentId}.jpg`, { type: 'image/jpeg' });
+                        handleAnalyzeScan(file).catch(console.error);
+                      } else {
+                        throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+                      }
+                    }, 'image/jpeg');
+                    return;
+                  } else {
+                    throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+                  }
                 }
                 
                 const proxyBlob = await proxyResponse.blob();
@@ -984,7 +1627,7 @@ const ScanPage = () => {
                 
                 // Submit for analysis
                 await handleAnalyzeScan(proxyFile);
-          }
+              }
               
               return;
         } else {
@@ -1159,6 +1802,503 @@ const ScanPage = () => {
   // Function to close the image dialog
   const closeImageDialog = () => {
     setSelectedImageDialog({ id: null, url: null });
+  };
+
+  // Add PDF download function for history scans
+  const handleHistoryScanDownloadPDF = (scan: Scan) => {
+    if (!scan) return;
+    
+    const isNormal = scan.result?.toLowerCase() === 'normal';
+    const isPneumonia = scan.result?.toLowerCase() === 'pneumonia';
+    const confidence = scan.confidence_score 
+      ? (scan.confidence_score > 1 
+        ? scan.confidence_score.toFixed(1) 
+        : (scan.confidence_score * 100).toFixed(1)) 
+      : null;
+    
+    const date = format(new Date(), "yyyy-MM-dd");
+    const filename = `scan-report-${scan.id}-${date}.pdf`;
+    
+    // Convert scan data to HTML content with improved styling
+    // eslint-disable-next-line
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Chopper Scan Report</title>
+          <style>
+            :root {
+              --primary-color: #00C1D4;
+              --highlight-blue: #3b82f6;
+              --tw-gradient-from-position: ;
+              --tw-gradient-to-position: ;
+            }
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+            body {
+              font-family: 'Inter', sans-serif;
+              padding: 15px;
+              color: #333;
+              max-width: 800px;
+              margin: 0 auto;
+              line-height: 1.4;
+              font-size: 18pt;
+            }
+            /* Print-specific styles to ensure single page */
+            @media print {
+              body {
+                padding: 0;
+                margin: 0;
+              }
+              .report-container {
+                page-break-inside: avoid;
+                max-height: 100%;
+                overflow: hidden;
+                margin-top: 15mm; /* Add top margin for print */
+              }
+              @page {
+                size: A4;
+                margin: 10mm;
+                margin-top: 20mm; /* Add extra top margin */
+                /* Remove page headers and footers */
+                margin-header: 0;
+                margin-footer: 0;
+                marks: none;
+              }
+              /* Hide all headers and footers added by the browser */
+              html {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              /* Remove URL, page numbers, date from print */
+              @page :first {
+                margin-top: 0;
+              }
+              @page :left {
+                margin-left: 0;
+              }
+              @page :right {
+                margin-right: 0;
+              }
+              @page :footer {
+                display: none;
+              }
+              @page :header {
+                display: none;
+              }
+            }
+            .report-container {
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 12px 16px;
+              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
+              color: white;
+            }
+            .logo-section {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 4px;
+            }
+            .logo {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 24px;
+              font-weight: bold;
+              color: #00C1D4;
+            }
+            .logo-icon {
+              background-color: #00C1D4;
+              color: white;
+              width: 32px;
+              height: 32px;
+              border-radius: 6px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .logo-text {
+              --tw-gradient-from: var(--primary-color) var(--tw-gradient-from-position);
+              --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
+              --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+              --tw-gradient-to: var(--highlight-blue) var(--tw-gradient-to-position);
+              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              font-size: 24px;
+              letter-spacing: -0.5px;
+            }
+            .logo-tagline {
+              font-size: 12px;
+              color: #64748b;
+              font-weight: 500;
+              margin-left: 40px;
+              letter-spacing: 0.5px;
+            }
+            h1 {
+              margin: 0;
+              color: ${isNormal ? '#15803d' : '#b91c1c'};
+              font-size: 20px;
+              font-weight: bold;
+            }
+            .confidence {
+              background-color: ${isNormal ? '#bbf7d0' : '#fecaca'};
+              color: ${isNormal ? '#166534' : '#b91c1c'};
+              padding: 6px 12px;
+              border-radius: 16px;
+              font-weight: bold;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+            }
+            .summary {
+              background-color: ${isNormal ? '#f0fdf4' : '#fef2f2'};
+              padding: 12px 16px;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            .summary p {
+              margin: 0;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+            .content {
+              padding: 16px;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 16px;
+            }
+            .section {
+              background-color: white;
+              border: 1px solid #e5e7eb;
+              border-radius: 6px;
+              padding: 12px;
+            }
+            .section h2 {
+              font-size: 16px;
+              margin-top: 0;
+              margin-bottom: 8px;
+              color: #4b5563;
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              border-bottom: 1px solid #f3f4f6;
+              padding-bottom: 6px;
+            }
+            .section h2 svg {
+              flex-shrink: 0;
+              width: 14px;
+              height: 14px;
+            }
+            .row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 6px;
+            }
+            .label {
+              color: #6b7280;
+              font-size: 12px;
+            }
+            .value {
+              font-weight: 500;
+              font-size: 12px;
+            }
+            .value.highlight {
+              color: ${isNormal ? '#16a34a' : '#dc2626'};
+              font-weight: 600;
+            }
+            .probabilities {
+              grid-column: 1 / -1;
+            }
+            .recommendations {
+              grid-column: 1 / -1;
+              background-color: #f9fafb;
+            }
+            ul {
+              margin: 6px 0;
+              padding-left: 20px;
+            }
+            li {
+              margin-bottom: 2px;
+              font-size: 12px;
+            }
+            .row-probabilities {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 4px 0;
+              border-bottom: 1px dashed #f3f4f6;
+            }
+            .probability-bar {
+              flex-grow: 1;
+              height: 4px;
+              background-color: #e5e7eb;
+              border-radius: 2px;
+              margin: 0 12px;
+              overflow: hidden;
+              width: 100%;
+              max-width: 100px;
+            }
+            .probability-value {
+              height: 100%;
+              background-color: #00C1D4;
+              border-radius: 2px;
+            }
+            .current {
+              background-color: ${predictionResult?.prediction === 'Normal' ? '#15803d' : '#b91c1c'};
+            }
+            svg {
+              width: 14px;
+              height: 14px;
+            }
+            
+            /* Download button */
+            .download-button {
+              display: inline-block;
+              margin: 20px auto;
+              padding: 10px 20px;
+              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
+              color: white;
+              border-radius: 5px;
+              text-decoration: none;
+              font-weight: bold;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            }
+            
+            .download-button:hover {
+              background: linear-gradient(to right, var(--highlight-blue), var(--primary-color));
+              transform: translateY(-1px);
+              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Print button */
+            .print-button {
+              display: inline-block;
+              margin: 20px 10px;
+              padding: 10px 20px;
+              background: linear-gradient(to right, #4b5563, #6b7280);
+              color: white;
+              border-radius: 5px;
+              text-decoration: none;
+              font-weight: bold;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            }
+            
+            .print-button:hover {
+              background: linear-gradient(to right, #6b7280, #4b5563);
+              transform: translateY(-1px);
+              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            }
+            
+            .button-container {
+              text-align: center;
+              margin-top: 20px;
+            }
+            
+            @media print {
+              .button-container {
+                display: none;
+              }
+            }
+            
+            /* Image styling */
+            .scan-image {
+              width: 100%;
+              max-height: 150px;
+              object-fit: contain;
+              border-radius: 4px;
+              border: 1px solid #e5e7eb;
+              margin-bottom: 8px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="report-container">
+            <div class="header">
+              <div class="logo-section">
+                <div class="logo">
+                  <div class="logo-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                    </svg>
+                  </div>
+                  <span class="logo-text">Chopper</span>
+                </div>
+                <div class="logo-tagline">Medical Scan Report</div>
+              </div>
+              <div class="confidence">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m12 14 4-4" />
+                  <path d="M12 14v7" />
+                  <path d="M12 14v-4a2 2 0 0 1 2-2c2.4 0 4.5 1.8 4.5 4a4.5 4.5 0 1 1-9 0" />
+                  <path d="M12 3v4" />
+                </svg>
+                ${typeof predictionResult?.confidence === 'number' 
+                  ? (predictionResult.confidence > 1 
+                    ? predictionResult.confidence.toFixed(1) 
+                    : (predictionResult.confidence * 100).toFixed(1)) 
+                  : predictionResult?.confidence}% Confidence
+              </div>
+            </div>
+            
+            <div class="summary">
+              <h1>
+                ${predictionResult?.prediction === 'Normal' ? 'Normal Scan Result' : 
+                 predictionResult?.prediction === 'Pneumonia' ? 'Pneumonia Detected' : 
+                 'Lung Opacity Detected'}
+              </h1>
+              <p>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="${predictionResult?.prediction === 'Normal' 
+                    ? 'M8 12l2 2 4-4' 
+                    : 'M12 8v4M12 16h.01'}"
+                  ></path>
+                </svg>
+                ${predictionResult?.prediction === 'Normal' 
+                ? 'No signs of abnormality were detected in this scan.' 
+                : predictionResult?.prediction === 'Pneumonia'
+                  ? 'Signs of pneumonia were detected. Please consult with a healthcare professional.'
+                  : 'Lung opacity was detected. Please consult with a healthcare professional.'}
+              </p>
+            </div>
+            
+            <div class="content">
+              <div class="section">
+                <h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <path d="M14 2v6h6"></path>
+                    <path d="M16 13H8"></path>
+                    <path d="M16 17H8"></path>
+                    <path d="M10 9H8"></path>
+                  </svg>
+                  Scan Details
+                </h2>
+                <div class="row">
+                  <span class="label">Result Status</span>
+                  <span class="value highlight">${predictionResult?.prediction}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Report ID</span>
+                  <span class="value">${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</span>
+                </div>
+              </div>
+
+              <div class="section">
+                <h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.2 7.8l-7.7 7.7-4-4-5.7 5.7"></path>
+                    <path d="M15 7h6v6"></path>
+                  </svg>
+                  Confidence Metrics
+                </h2>
+                <div class="row">
+                  <span class="label">Model Confidence</span>
+                  <span class="value">${confidence}%</span>
+                </div>
+                <div class="row">
+                  <span class="label">Analysis Type</span>
+                  <span class="value">AI-Powered Detection</span>
+                </div>
+              </div>
+
+              ${scan.image ? `
+              <div class="section" style="grid-column: 1 / -1;">
+                <h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  Scan Image
+                </h2>
+                <img src="${scan.image}" alt="Chest X-ray Image" class="scan-image" />
+              </div>
+              ` : ''}
+
+              <div class="section recommendations">
+                <h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <path d="M22 4 12 14.01l-3-3"></path>
+                  </svg>
+                  Recommendations
+                </h2>
+                ${isNormal 
+                  ? `<p>Your scan appears normal. However, if you experience any symptoms or concerns, 
+                     please consult with a healthcare professional for further evaluation.</p>`
+                  : `<p>Based on the analysis, ${isPneumonia ? 'signs of pneumonia' : 'lung opacity'} were detected. We recommend:</p>
+                     <ul>
+                       <li>Schedule a consultation with a healthcare professional</li>
+                       <li>Monitor your symptoms closely</li>
+                       <li>Follow up with additional tests if recommended</li>
+                     </ul>`
+                }
+              </div>
+            </div>
+          </div>
+          
+          <div class="button-container">
+            <button class="print-button" onclick="window.print()">Print as PDF</button>
+            <button class="download-button" onclick="window.close()">Close</button>
+          </div>
+          
+          <script>
+            // Auto-print when the page loads
+            window.onload = function() {
+              // Set print settings to hide headers and footers
+              const style = document.createElement('style');
+              style.textContent = '@page { margin: 10mm; size: A4; }';
+              document.head.appendChild(style);
+              
+              // Focus on content only
+              document.body.classList.add('print-only-content');
+              
+              // Show a message to guide the user
+              setTimeout(() => {
+                alert("To save as PDF: Click 'Print' button, then select 'Save as PDF' as the destination in the print dialog.");
+              }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `;
+    
+    // Create a Blob with the HTML content
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    // Open the HTML content in a new window for printing/saving as PDF
+    const printWindow = window.open(url, '_blank');
+    
+    if (printWindow) {
+      // Add script to trigger print dialog after content loads
+      printWindow.onload = function() {
+        printWindow.document.title = filename;
+      };
+    } else {
+      // If popup is blocked, provide direct download link
+      customToast.error("Pop-up blocked. Please allow pop-ups for this site to download the PDF.");
+      
+      // Create a temporary link to download the HTML file
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.replace('.pdf', '.html');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
   };
 
   if (loading) {
@@ -1640,7 +2780,7 @@ const ScanPage = () => {
                           {/* Recommendations Section */}
                           <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
                             <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Recommendations</h4>
-                            {predictionResult.prediction === 'Normal' ? (
+                            {predictionResult?.prediction === 'Normal' ? (
                               <p className="text-xs sm:text-sm text-gray-600">
                                 Your scan appears normal. However, if you experience any symptoms or concerns, 
                                 please consult with a healthcare professional for further evaluation.
@@ -1648,7 +2788,7 @@ const ScanPage = () => {
                             ) : (
                               <div>
                                 <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
-                                  Based on the analysis, {predictionResult.prediction === 'Pneumonia' ? "signs of pneumonia" : "lung opacity"} were detected. We recommend:
+                                  Based on the analysis, {predictionResult?.prediction === 'Pneumonia' ? "signs of pneumonia" : "lung opacity"} were detected. We recommend:
                                 </p>
                                 <ul className="list-disc list-inside space-y-1 sm:space-y-1.5 text-xs sm:text-sm text-gray-600 pl-1 mb-3 sm:mb-4">
                                   <li>Schedule a consultation with a healthcare professional</li>
@@ -2193,6 +3333,26 @@ const ScanPage = () => {
                                       <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
                                     </svg>
                                     Consult Doctor
+                                  </span>
+                                </Button>
+                              )}
+                              
+                              {/* Download PDF Report Button */}
+                              {scan.result && (
+                                <Button
+                                  onClick={() => handleHistoryScanDownloadPDF(scan)}
+                                  className={cn(
+                                    "relative overflow-hidden transition-all duration-300 text-[10px] xs:text-xs font-medium px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full hover:-translate-y-0.5 active:translate-y-0 mt-0 sm:mt-0.5",
+                                    !isNormal && scan.result ? "ml-2" : "",
+                                    isNormal 
+                                      ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-green-500 hover:to-emerald-600 border border-transparent hover:border-green-300" 
+                                      : "bg-gradient-to-r from-blue-500 to-cyan-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-blue-500 hover:to-cyan-600 border border-transparent hover:border-blue-300"
+                                  )}
+                                  title="Download scan report as PDF"
+                                >
+                                  <span className="relative z-10 flex items-center gap-1 sm:gap-1.5">
+                                    <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white transition-colors duration-300" />
+                                    Report
                                   </span>
                                 </Button>
                               )}

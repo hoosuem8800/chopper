@@ -40,3 +40,44 @@
 .read-the-docs {
   color: #888;
 }
+
+@page {
+  size: A4;
+  margin: 10mm;
+  margin-header: 0;
+  margin-footer: 0;
+  marks: none;
+}
+
+/* Additional print settings to remove headers/footers */
+@page :first {
+  margin-top: 0;
+}
+
+@page :left {
+  margin-left: 0;
+}
+
+@page :right {
+  margin-right: 0;
+}
+
+@page :footer {
+  display: none;
+}
+
+@page :header {
+  display: none;
+}
+
+@media print {
+  html {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Hide browser-added headers and footers */
+  body::before, body::after {
+    display: none !important;
+  }
+}

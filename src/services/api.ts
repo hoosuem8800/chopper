@@ -208,18 +208,27 @@ api.interceptors.request.use((config) => {
                 sessionStorage.getItem('accessToken');
   
   if (token) {
-    // Detect token type: JWT tokens start with 'ey'
-    const prefix = token.startsWith('ey') ? 'Bearer' : 'Token';
+    // Detect token type based on format: 
+    // JWT tokens typically start with 'ey', Django tokens don't
+    const isJWT = token.startsWith('ey');
+    const prefix = isJWT ? 'Bearer' : 'Token';
     config.headers.Authorization = `${prefix} ${token}`;
-    console.log(`Found authentication token, adding to request with ${prefix} prefix`);
-  } else {
-    console.warn('No authentication token found');
+    
+    // Add debugging info only in development
+    if (import.meta.env.DEV) {
+      console.log(`Adding auth token (${isJWT ? 'JWT' : 'Token'} format) to request`);
+    }
+  } else if (import.meta.env.DEV) {
+    console.warn('No authentication token found for API request');
   }
   
-  // Add standard CORS headers to all requests
+  // Add standard headers to all requests
   config.headers['X-Requested-With'] = 'XMLHttpRequest';
   
   return config;
+}, (error) => {
+  console.error('Error in API request interceptor:', error);
+  return Promise.reject(error);
 });
 
 // Add response interceptor to handle token expiration
