@@ -102,12 +102,6 @@ const SignupPage = () => {
       // Call register function
       await register(userData);
       
-      // If registration successful and we have a profile picture, upload it separately
-      if (formData.profileImage) {
-        console.log('Registration successful, updating profile picture separately');
-        // Here we would upload the profile picture, but we'll handle that later
-        // This would require another API call to update the profile picture
-      }
       
       // Show success message
       customToast.success('Account created successfully!');
@@ -347,41 +341,7 @@ const SignupPage = () => {
                     {errors.confirmPassword}
                   </p>
                 )}
-              </div>
-              
-              <div className="space-y-3 pt-1 mb-4">
-                <Label className="text-gray-600 font-medium flex items-center">
-                  <UserCircle size={18} className="mr-2 text-gray-400" />
-                  Profile Picture (Optional)
-                </Label>
-                <div className="flex items-center gap-4">
-                  <div className="relative h-20 w-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 shadow-sm">
-                    {previewUrl ? (
-                      <img src={previewUrl} alt="Profile preview" className="h-full w-full object-cover" />
-                    ) : (
-                      <User className="h-10 w-10 text-gray-300" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <Label 
-                      htmlFor="profileImage" 
-                      className="flex items-center justify-center border border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors hover:border-primary/50 group"
-                    >
-                      <Upload className="h-5 w-5 mr-2 text-gray-400 group-hover:text-primary transition-colors" />
-                      <span className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Upload Profile Picture</span>
-                      <Input 
-                        id="profileImage" 
-                        name="profileImage" 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden"
-                        onChange={handleImageChange}
-                      />
-                    </Label>
-                  </div>
-                </div>
-              </div>
-              
+              </div>              
               <div className="pt-2">
                 <Button 
                   type="submit" 

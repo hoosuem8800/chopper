@@ -1019,9 +1019,9 @@ const ScanPage = () => {
             .watermark {
               position: absolute;
               transform: rotate(-45deg);
-              font-size: 85px;
+              font-size: ${isNormal ? '185px' : '85px'};
               font-weight: 1000;
-              color: ${isNormal ? 'rgba(21, 128, 60, 0.09)' : 'rgba(185, 28, 28, 0.09)'};
+              color: ${isNormal ? 'rgba(21, 128, 60, 0.06)' : 'rgba(185, 28, 28, 0.06)'};
               top: 0;
               left: 0;
               right: 0;
@@ -1029,7 +1029,7 @@ const ScanPage = () => {
               display: flex;
               align-items: center;
               justify-content: center;
-              z-index: 0;
+              z-index: -100;
               pointer-events: none;
             }
             
@@ -1119,7 +1119,7 @@ const ScanPage = () => {
         <body>
           <div class="report-container">
             <!-- Subtle watermark -->
-            <div class="watermark">${isNormal ? 'NORMAL' : 'CONSULT DOCTOR'}</div>
+            <div class="watermark">${isNormal ? 'NORMAL' : 'ABNORMAL'}</div>
             
             <div class="report-header">
               <div class="header-content">
