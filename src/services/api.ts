@@ -28,7 +28,9 @@ const FRONTEND_PORT = window.location.port;
 // Define constants for API URLs
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || 8000;
 const PRODUCTION_API_URL = 'https://backends-production-d57e.up.railway.app/api';
-const LOCAL_API_URL = `http://localhost:${BACKEND_PORT}/api`;
+
+// For development, explicitly use HTTP regardless of whether the frontend is served over HTTPS
+const LOCAL_API_URL = `http://${window.location.hostname}:${BACKEND_PORT}/api`;
 
 // Always use production URL in production environment
 const API_BASE_URL = import.meta.env.PROD ? PRODUCTION_API_URL : LOCAL_API_URL;
@@ -153,7 +155,7 @@ export const formatProfilePictureUrl = (profilePicture: string | null | undefine
   // Get the backend URL - use the same logic as our API_BASE_URL
   const backendUrl = import.meta.env.PROD
     ? 'https://backends-production-d57e.up.railway.app'
-    : `http://${window.location.hostname}:8000`;
+    : `http://${window.location.hostname}:${BACKEND_PORT}`;
   
   // Remove any duplicate paths to prevent errors
   let cleanPath = profilePicture;
@@ -2440,5 +2442,117 @@ export const timeUtils = {
     });
     
     return localDate;
+  }
+};
+
+// Add a helper function for handling image URLs consistently
+export const getProperImageUrl = (imageUrl: string): string => {
+  if (!imageUrl) return '';
+  
+  // Check if we're in development mode
+  if (import.meta.env.DEV) {
+    // For development, always use HTTP protocol
+    // If the URL is a full URL starting with http or https
+    if (imageUrl.startsWith('http')) {
+      // Replace https with http for localhost URLs in development
+      if (imageUrl.includes('localhost')) {
+        return imageUrl.replace('https://', 'http://');
+      }
+      return imageUrl;
+    }
+    
+    // For relative URLs, prepend the HTTP development API URL
+    const devBaseUrl = `http://${window.location.hostname}:${BACKEND_PORT}`;
+    if (imageUrl.startsWith('/')) {
+      return `${devBaseUrl}${imageUrl}`;
+    } else {
+      return `${devBaseUrl}/${imageUrl}`;
+    }
+  } else {
+    // In production, keep using HTTPS
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    
+    // For relative URLs in production, use the production URL
+    const prodBaseUrl = 'https://backends-production-d57e.up.railway.app';
+    if (imageUrl.startsWith('/')) {
+      return `${prodBaseUrl}${imageUrl}`;
+    } else {
+      return `${prodBaseUrl}/${imageUrl}`;
+    }
+  }
+};
+
+// Create a function to help fetch images safely
+export const fetchImageSafely = async (imageUrl: string): Promise<Blob> => {
+  const properUrl = getProperImageUrl(imageUrl);
+  console.log(`Fetching image from: ${properUrl}`);
+  
+  // First try direct fetch
+  try {
+    const response = await fetch(properUrl);
+    if (response.ok) {
+      return await response.blob();
+    }
+    throw new Error(`Direct fetch failed with status: ${response.status}`);
+  } catch (directError) {
+    console.log('Direct fetch failed, trying authenticated fetch:', directError);
+    
+    // Try authenticated fetch
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No token available for authenticated fetch');
+      }
+      
+      // Detect token type based on format and use appropriate prefix
+      const isJWT = token.startsWith('ey');
+      const prefix = isJWT ? 'Bearer' : 'Token';
+      
+      const authResponse = await fetch(properUrl, {
+        headers: {
+          'Authorization': `${prefix} ${token}`
+        }
+      });
+      
+      if (authResponse.ok) {
+        return await authResponse.blob();
+      }
+      throw new Error(`Authenticated fetch failed with status: ${authResponse.status}`);
+    } catch (authError) {
+      console.log('Authenticated fetch failed, trying proxy:', authError);
+      
+      // Try proxy as last resort
+      const encodedUrl = encodeURIComponent(properUrl);
+      const proxyUrl = `${import.meta.env.DEV ? 
+        `http://${window.location.hostname}:${BACKEND_PORT}` : 
+        'https://backends-production-d57e.up.railway.app'}/api/proxy-image/?url=${encodedUrl}`;
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No token available for proxy fetch');
+      }
+      
+      // Detect token type based on format and use appropriate prefix
+      const isJWT = token.startsWith('ey');
+      const prefix = isJWT ? 'Bearer' : 'Token';
+      
+      const proxyResponse = await fetch(proxyUrl, {
+        headers: {
+          'Authorization': `${prefix} ${token}`,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      if (proxyResponse.ok) {
+        return await proxyResponse.blob();
+      }
+      
+      // All methods failed
+      const errorText = await proxyResponse.text();
+      console.error('All fetch methods failed. Proxy error:', errorText);
+      throw new Error(`All fetch methods failed. Proxy returned: ${proxyResponse.status}`);
+    }
   }
 };

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Upload, History, AlertCircle, FileText, CheckCircle, Loader2, Cloud, ArrowLeft, PartyPopper, FilterX, SortDesc, SortAsc, Lock, Zap, FileX, CalendarPlus, Folder, X, ArrowRight, Download } from 'lucide-react';
+import { Upload, History, AlertCircle, FileText, CheckCircle, Loader2, Cloud, ArrowLeft, PartyPopper, FilterX, SortDesc, SortAsc, Lock, Zap, FileX, CalendarPlus, Folder, X, ArrowRight, Download, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, appointmentService, scanService, xrayService } from '@/services/api';
 import { format } from 'date-fns';
@@ -35,6 +35,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { getProperImageUrl, fetchImageSafely } from '../services/api';
 
 // Define the Scan interface
 interface Scan {
@@ -68,6 +69,8 @@ const ScanPage = () => {
   const [loadingXRays, setLoadingXRays] = useState(false);
   const [expandedImages, setExpandedImages] = useState<Record<string, boolean>>({});
   const [selectedImageDialog, setSelectedImageDialog] = useState<{ id: number | null, url: string | null }>({ id: null, url: null });
+  const [userXRayError, setUserXRayError] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Custom CSS for scan animation
   const scannerStyles = `
@@ -174,6 +177,126 @@ const ScanPage = () => {
     
     .group:hover .consult-btn:not(:hover) .consult-icon {
       color: white !important;
+    }
+    
+    /* Custom download button styling to fix hover issue */
+    .download-btn:hover .download-icon,
+    .download-btn:hover .arrow-icon {
+      color: #06b6d4 !important; /* Cyan-500 */
+    }
+    
+    .download-btn:hover .arrow-icon {
+      transform: translateX(2px);
+    }
+    
+    /* Enhanced SVG hover effects for Quick Scan button */
+    .download-btn:hover .hover-button-icon {
+      color: #06b6d4 !important; /* Cyan-500 */
+      filter: drop-shadow(0 0 2px rgba(6, 182, 212, 0.5));
+      transform: scale(1.1);
+    }
+    
+    .download-btn:hover .hover-button-icon:first-of-type {
+      animation: pulse-glow 1.5s ease-in-out infinite;
+    }
+    
+    .download-btn:hover .hover-button-icon:last-of-type {
+      transform: translateX(3px) scale(1.05);
+    }
+    
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 2px rgba(6, 182, 212, 0.3)); }
+      50% { filter: drop-shadow(0 0 5px rgba(6, 182, 212, 0.7)); }
+    }
+    
+    /* Prevent card hover from affecting button SVGs */
+    .card-container:hover .download-btn:not(:hover) .download-icon,
+    .card-container:hover .download-btn:not(:hover) .arrow-icon {
+      color: white !important;
+      transform: none;
+    }
+    
+    /* Custom responsive styles for scan history cards */
+    @media screen {
+      /* Base styles for scan history cards */
+      .scan-history-card {
+        width: 100%;
+        background-color: white;
+        border-radius: 1rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(229, 231, 235, 0.6);
+        transition: all 0.3s ease;
+      }
+      
+      .scan-history-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-color: rgba(229, 231, 235, 0.8);
+      }
+      
+      .scan-details-container {
+        display: flex;
+        flex-direction: column;
+        padding: 1rem;
+        gap: 0.5rem;
+      }
+      
+      @media (min-width: 640px) {
+        .scan-details-container {
+          flex-direction: row;
+          align-items: center;
+          gap: 1rem;
+          padding: 1.5rem;
+        }
+      }
+      
+      @media (min-width: 768px) {
+        .scan-details-container {
+          gap: 1.5rem;
+          padding: 1.5rem;
+        }
+      }
+      
+      @media (min-width: 1024px) {
+        .scan-history-card {
+          max-width: 100%;
+          min-height: 120px;
+        }
+        
+      .scan-details-container {
+          flex-direction: row;
+          align-items: center;
+          gap: 2rem;
+          padding: 2rem;
+        }
+      }
+    }
+    
+    /* Scan card in Quick Scan section */
+    .quick-scan-card {
+      width: 100%;
+      max-width: 100%;
+      min-height: 220px;
+      margin-left: auto;
+      margin-right: auto;
+      transition: all 0.3s ease;
+    }
+    
+    @media (min-width: 480px) {
+      .quick-scan-card {
+        max-width: 480px;
+      }
+    }
+    
+    @media (min-width: 640px) {
+      .quick-scan-card {
+        max-width: 560px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .quick-scan-card {
+        max-width: 650px;
+      }
     }
   `;
 
@@ -378,7 +501,7 @@ const ScanPage = () => {
       const predictionResponse = await api.post('/predict-scan/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Token ${token}`
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -426,7 +549,7 @@ const ScanPage = () => {
       const scanResponse = await api.post('/scans/', scanFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Token ${token}`
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -504,19 +627,25 @@ const ScanPage = () => {
     }
   };
 
-  // Add PDF download function
-  const handleDownloadPDF = () => {
-    // Get the prediction result container element
-    const element = document.getElementById('prediction-result');
-    if (!element) return;
+  // Add consolidated PDF generation function
+  const generatePDFReport = (scanData: any) => {
+    if (!scanData) return;
     
-    // Create a new blob with the prediction data
-    const data = JSON.stringify(predictionResult, null, 2);
-    const prediction = predictionResult?.prediction || 'Result';
+    const isNormal = scanData.prediction === 'Normal' || scanData.result?.toLowerCase() === 'normal';
+    const isPneumonia = scanData.prediction === 'Pneumonia' || scanData.result?.toLowerCase() === 'pneumonia';
+    
+    // Format confidence as percentage
+    const confidence = typeof scanData.confidence === 'number' 
+      ? (scanData.confidence > 1 ? scanData.confidence.toFixed(1) : (scanData.confidence * 100).toFixed(1)) 
+      : typeof scanData.confidence_score === 'number'
+        ? (scanData.confidence_score > 1 ? scanData.confidence_score.toFixed(1) : (scanData.confidence_score * 100).toFixed(1))
+        : null;
+    
     const date = format(new Date(), "yyyy-MM-dd");
-    const filename = `scan-report-${prediction.toLowerCase()}-${date}.pdf`;
+    const scanId = scanData.id || 'new';
+    const filename = `scan-report-${scanId}-${date}.pdf`;
     
-    // Convert prediction data to HTML content with improved styling
+    // Convert scan data to HTML content with improved styling
     // eslint-disable-next-line
     const htmlContent = `
       <html>
@@ -525,352 +654,527 @@ const ScanPage = () => {
           <style>
             :root {
               --primary-color: #00C1D4;
+              --primary-dark: #0097a7;
               --highlight-blue: #3b82f6;
-              --tw-gradient-from-position: ;
-              --tw-gradient-to-position: ;
+              --success-color: #15803d;
+              --success-light: #bbf7d0;
+              --success-bg: #f0fdf4;
+              --danger-color: #b91c1c;
+              --danger-light: #fecaca;
+              --danger-bg: #fef2f2;
+              --gray-50: #f9fafb;
+              --gray-100: #f3f4f6;
+              --gray-200: #e5e7eb;
+              --gray-300: #d1d5db;
+              --gray-400: #9ca3af;
+              --gray-500: #6b7280;
+              --gray-600: #4b5563;
+              --gray-700: #374151;
+              --gray-800: #1f2937;
+              --gray-900: #111827;
             }
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+            }
+            
+            html {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
             body {
-              font-family: 'Inter', sans-serif;
-              padding: 15px;
-              color: #333;
-              max-width: 800px;
-              margin: 0 auto;
+              font-family: 'Inter', system-ui, -apple-system, sans-serif;
+              color: var(--gray-800);
               line-height: 1.4;
-              font-size: 18pt;
+              font-size: 12px;
+              background-color: #f5f7fa;
+              padding: 0;
+              margin: 0;
             }
+            
             /* Print-specific styles to ensure single page */
             @media print {
               body {
+                background-color: white;
                 padding: 0;
                 margin: 0;
               }
               .report-container {
-                page-break-inside: avoid;
-                max-height: 100%;
+                border: none;
+                box-shadow: none;
+                margin: 0;
+                max-width: 100%;
+                width: 100%;
+                min-height: 100vh;
+                max-height: 100vh;
                 overflow: hidden;
-                margin-top: 15mm; /* Add top margin for print */
+                page-break-after: avoid;
+                page-break-before: avoid;
+                page-break-inside: avoid;
               }
               @page {
-                size: A4;
-                margin: 10mm;
-                margin-top: 20mm; /* Add extra top margin */
+                size: A4 portrait;
+                margin: 8mm;
                 /* Remove page headers and footers */
                 margin-header: 0;
                 margin-footer: 0;
                 marks: none;
               }
-              /* Hide all headers and footers added by the browser */
-              html {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
               /* Remove URL, page numbers, date from print */
-              @page :first {
-                margin-top: 0;
-              }
-              @page :left {
-                margin-left: 0;
-              }
-              @page :right {
-                margin-right: 0;
-              }
               @page :footer {
                 display: none;
               }
               @page :header {
                 display: none;
               }
+              .non-printable {
+                display: none !important;
+              }
+              /* Scale content to fit page if needed */
+              html, body {
+                width: 210mm;
+                height: 297mm;
+              }
             }
+            
             .report-container {
-              border: 1px solid #e5e7eb;
-              border-radius: 10px;
+              background-color: white;
+              max-width: 210mm; /* A4 width */
+              margin: 20px auto;
+              border-radius: 8px;
               overflow: hidden;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+              position: relative;
             }
-            .header {
+            
+            .report-header {
+              position: relative;
+              padding: 10px 15px;
+              border-bottom: 1px solid var(--gray-200);
+              background-color: white;
+            }
+            
+            .header-content {
               display: flex;
               justify-content: space-between;
               align-items: center;
-              padding: 12px 16px;
-              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
-              color: white;
+              padding-bottom: 5px;
             }
+            
             .logo-section {
               display: flex;
               flex-direction: column;
-              align-items: flex-start;
-              gap: 4px;
             }
+            
             .logo {
               display: flex;
               align-items: center;
-              gap: 8px;
-              font-size: 24px;
-              font-weight: bold;
-              color: #00C1D4;
+              gap: 6px;
             }
+            
             .logo-icon {
-              background-color: #00C1D4;
-              color: white;
-              width: 32px;
-              height: 32px;
+              background-color: white ;
+              color: var(--primary-color);
+              width: 28px;
+              height: 28px;
               border-radius: 6px;
               display: flex;
               align-items: center;
               justify-content: center;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              box-shadow: 0 2px 4px rgba(0, 193, 212, 0.25);
             }
+            
             .logo-text {
-              --tw-gradient-from: var(--primary-color) var(--tw-gradient-from-position);
-              --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
-              --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-              --tw-gradient-to: var(--highlight-blue) var(--tw-gradient-to-position);
               background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
-              font-size: 24px;
+              font-size: 20px;
+              font-weight: 700;
               letter-spacing: -0.5px;
             }
+            
             .logo-tagline {
-              font-size: 12px;
-              color: #64748b;
-              font-weight: 500;
-              margin-left: 40px;
-              letter-spacing: 0.5px;
+              color: var(--gray-500);
+              font-size: 10px;
+              margin-left: 34px;
+              margin-top: -2px;
             }
-            h1 {
-              margin: 0;
-              color: ${predictionResult?.prediction === 'Normal' ? '#15803d' : '#b91c1c'};
-              font-size: 20px;
-              font-weight: bold;
+            
+            .header-meta {
+              text-align: right;
             }
-            .confidence {
-              background-color: ${predictionResult?.prediction === 'Normal' ? '#bbf7d0' : '#fecaca'};
-              color: ${predictionResult?.prediction === 'Normal' ? '#166534' : '#b91c1c'};
+            
+            .report-id {
+              font-size: 11px;
+              color: var(--gray-500);
+              margin-bottom: 4px;
+            }
+            
+            .confidence-badge {
+              background-color: ${isNormal ? 'var(--success-light)' : 'var(--danger-light)'};
+              color: ${isNormal ? 'var(--success-color)' : 'var(--danger-color)'};
               padding: 6px 12px;
               border-radius: 16px;
-              font-weight: bold;
-              display: flex;
+              font-weight: 600;
+              font-size: 13px;
+              display: inline-flex;
               align-items: center;
-              gap: 4px;
+              gap: 6px;
+              box-shadow: 0 1px 2px ${isNormal ? 'rgba(21, 128, 61, 0.1)' : 'rgba(185, 28, 28, 0.1)'};
             }
-            .summary {
-              background-color: ${predictionResult?.prediction === 'Normal' ? '#f0fdf4' : '#fef2f2'};
-              padding: 12px 16px;
-              border-bottom: 1px solid #e5e7eb;
+            
+            .confidence-badge svg {
+              width: 14px;
+              height: 14px;
             }
-            .summary p {
+            
+            .status-bar {
+              height: 6px;
+              width: 100%;
+              background-color: ${isNormal ? 'var(--success-color)' : 'var(--danger-color)'};
+              margin-top: 8px;
+            }
+            
+            .report-title {
+              padding: 10px 15px;
+              background-color: ${isNormal ? 'var(--success-bg)' : 'var(--danger-bg)'};
+              border-bottom: 1px solid ${isNormal ? '#dcfce7' : '#fee2e2'};
+            }
+            
+            .report-title h1 {
+              color: ${isNormal ? 'var(--success-color)' : 'var(--danger-color)'};
+              font-size: 18px;
+              font-weight: 600;
               margin: 0;
+              padding: 0;
               display: flex;
               align-items: center;
               gap: 8px;
             }
-            .content {
-              padding: 16px;
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 16px;
+            
+            .report-title h1 svg {
+              width: 18px;
+              height: 18px;
             }
-            .section {
-              background-color: white;
-              border: 1px solid #e5e7eb;
-              border-radius: 6px;
+            
+            .report-title p {
+              margin-top: 4px;
+              color: ${isNormal ? '#166534' : '#b91c1c'};
+              font-size: 12px;
+              padding-left: 26px;
+            }
+            
+            .report-content {
               padding: 12px;
             }
-            .section h2 {
-              font-size: 16px;
-              margin-top: 0;
-              margin-bottom: 8px;
-              color: #4b5563;
+            
+            .report-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+            }
+            
+            .section {
+              background-color: white;
+              border: 1px solid var(--gray-200);
+              border-radius: 8px;
+              overflow: hidden;
+            }
+            
+            .section-header {
+              background-color: #f8fafc;
+              padding: 6px 10px;
+              border-bottom: 1px solid var(--gray-200);
+            }
+            
+            .section-header h2 {
+              color: var(--gray-700);
+              font-size: 13px;
+              font-weight: 600;
+              margin: 0;
               display: flex;
               align-items: center;
               gap: 6px;
-              border-bottom: 1px solid #f3f4f6;
-              padding-bottom: 6px;
-            }
-            .section h2 svg {
-              flex-shrink: 0;
-              width: 14px;
-              height: 14px;
-            }
-            .row {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 6px;
-            }
-            .label {
-              color: #6b7280;
-              font-size: 12px;
-            }
-            .value {
-              font-weight: 500;
-              font-size: 12px;
-            }
-            .value.highlight {
-              color: ${predictionResult?.prediction === 'Normal' ? '#16a34a' : '#dc2626'};
-              font-weight: 600;
-            }
-            .probabilities {
-              grid-column: 1 / -1;
-            }
-            .recommendations {
-              grid-column: 1 / -1;
-              background-color: #f9fafb;
-            }
-            ul {
-              margin: 6px 0;
-              padding-left: 20px;
-            }
-            li {
-              margin-bottom: 2px;
-              font-size: 12px;
-            }
-            .row-probabilities {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              padding: 4px 0;
-              border-bottom: 1px dashed #f3f4f6;
-            }
-            .probability-bar {
-              flex-grow: 1;
-              height: 4px;
-              background-color: #e5e7eb;
-              border-radius: 2px;
-              margin: 0 12px;
-              overflow: hidden;
-              width: 100%;
-              max-width: 100px;
-            }
-            .probability-value {
-              height: 100%;
-              background-color: #00C1D4;
-              border-radius: 2px;
-            }
-            .current {
-              background-color: ${predictionResult?.prediction === 'Normal' ? '#15803d' : '#b91c1c'};
-            }
-            svg {
-              width: 14px;
-              height: 14px;
             }
             
-            /* Download button */
-            .download-button {
-              display: inline-block;
-              margin: 20px auto;
+            .section-header h2 svg {
+              width: 14px;
+              height: 14px;
+              color: var(--primary-color);
+            }
+            
+            .section-content {
+              padding: 8px 10px;
+            }
+            
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 4px 0;
+              border-bottom: 1px solid var(--gray-100);
+            }
+            
+            .info-row:last-child {
+              border-bottom: none;
+            }
+            
+            .info-label {
+              color: var(--gray-600);
+              font-size: 12px;
+            }
+            
+            .info-value {
+              font-weight: 500;
+              font-size: 12px;
+              color: var(--gray-800);
+            }
+            
+            .info-value.highlight {
+              color: ${isNormal ? 'var(--success-color)' : 'var(--danger-color)'};
+              font-weight: 600;
+            }
+            
+            .full-width {
+              grid-column: 1 / -1;
+            }
+            
+            .probability-row {
+              display: flex;
+              align-items: center;
+              padding: 5px 0;
+              border-bottom: 1px solid var(--gray-100);
+            }
+            
+            .probability-row:last-child {
+              border-bottom: none;
+            }
+            
+            .probability-label {
+              flex: 0 0 100px;
+              font-size: 12px;
+              color: var(--gray-600);
+            }
+            
+            .probability-bar-container {
+              flex: 1;
+              height: 8px;
+              background-color: var(--gray-100);
+              border-radius: 4px;
+              overflow: hidden;
+              margin: 0 12px;
+            }
+            
+            .probability-bar {
+              height: 100%;
+              background-color: var(--primary-color);
+              border-radius: 4px;
+            }
+            
+            .probability-bar.current {
+              background-color: ${isNormal ? 'var(--success-color)' : 'var(--danger-color)'};
+            }
+            
+            .probability-value {
+              flex: 0 0 40px;
+              text-align: right;
+              font-size: 12px;
+              font-weight: 500;
+              color: var(--gray-800);
+            }
+            
+            .probability-value.highlight {
+              color: ${isNormal ? 'var(--success-color)' : 'var(--danger-color)'};
+              font-weight: 600;
+            }
+            
+            .image-container {
+              display: flex;
+              justify-content: center;
+              padding: 8px 0;
+            }
+            
+            .scan-image {
+              max-width: 100%;
+              max-height: 150px;
+              object-fit: contain;
+              border-radius: 4px;
+              border: 1px solid var(--gray-200);
+            }
+            
+            .recommendations-list {
+              padding-left: 20px;
+              margin: 8px 0;
+            }
+            
+            .recommendations-list li {
+              margin-bottom: 5px;
+              font-size: 12px;
+              color: var(--gray-700);
+            }
+            
+            .watermark {
+              position: absolute;
+              transform: rotate(-45deg);
+              font-size: 85px;
+              font-weight: 1000;
+              color: ${isNormal ? 'rgba(21, 128, 60, 0.09)' : 'rgba(185, 28, 28, 0.09)'};
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              z-index: 0;
+              pointer-events: none;
+            }
+            
+            .button-container {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              gap: 12px;
+              margin: 24px 0;
+            }
+            
+            .action-button {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
               padding: 10px 20px;
-              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
-              color: white;
-              border-radius: 5px;
-              text-decoration: none;
-              font-weight: bold;
+              border-radius: 8px;
+              font-weight: 600;
+              font-size: 14px;
               cursor: pointer;
               transition: all 0.3s ease;
+              border: none;
+              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            }
+            
+            .print-button {
+              background: linear-gradient(to right, var(--gray-600), var(--gray-700));
+              color: white;
+            }
+            
+            .print-button:hover {
+              background: linear-gradient(to right, var(--gray-700), var(--gray-800));
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            }
+            
+            .download-button {
+              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
+              color: white;
             }
             
             .download-button:hover {
               background: linear-gradient(to right, var(--highlight-blue), var(--primary-color));
-              transform: translateY(-1px);
-              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
             }
             
-            /* Print button */
-            .print-button {
-              display: inline-block;
-              margin: 20px 10px;
-              padding: 10px 20px;
-              background: linear-gradient(to right, #4b5563, #6b7280);
-              color: white;
-              border-radius: 5px;
-              text-decoration: none;
-              font-weight: bold;
-              cursor: pointer;
-              transition: all 0.3s ease;
+            .close-button {
+              background: white;
+              color: var(--gray-500);
+              border: 1px solid var(--gray-200);
             }
             
-            .print-button:hover {
-              background: linear-gradient(to right, #6b7280, #4b5563);
-              transform: translateY(-1px);
-              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            }
-            
-            .button-container {
-              text-align: center;
-              margin-top: 20px;
+            .close-button:hover {
+              background: var(--gray-50);
+              color: var(--gray-700);
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             }
             
             @media print {
-              .button-container {
-                display: none;
+              .button-container, .non-printable {
+                display: none !important;
               }
             }
             
-            /* Image styling */
-            .scan-image {
-              width: 100%;
-              max-height: 150px;
-              object-fit: contain;
-              border-radius: 4px;
-              border: 1px solid #e5e7eb;
-              margin-bottom: 8px;
+            .report-footer {
+              text-align: center;
+              padding: 8px;
+              border-top: 1px solid var(--gray-200);
+              color: var(--gray-500);
+              font-size: 14px;
+              font-weight: bold;
+              margin-top: 20px;
+              margin-bottom: 15px;
+            }
+            
+            .disclaimer {
+              font-style: italic;
+              margin-top: 3px;
+              font-size: 12px;
+              color: var(--gray-500);
             }
           </style>
         </head>
         <body>
           <div class="report-container">
-            <div class="header">
+            <!-- Subtle watermark -->
+            <div class="watermark">${isNormal ? 'NORMAL' : 'CONSULT DOCTOR'}</div>
+            
+            <div class="report-header">
+              <div class="header-content">
               <div class="logo-section">
                 <div class="logo">
                   <div class="logo-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hospital" viewBox="0 0 16 16">
+                        <path d="M8.5 5.034v1.1l.953-.55.5.867L9 7l.953.55-.5.866-.953-.55v1.1h-1v-1.1l-.953.55-.5-.866L7 7l-.953-.55.5-.866.953.55v-1.1zM13.25 9a.25.25 0 0 0-.25.25v.5c0 .138.112.25.25.25h.5a.25.25 0 0 0 .25-.25v-.5a.25.25 0 0 0-.25-.25zM13 11.25a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25zm.25 1.75a.25.25 0 0 0-.25.25v.5c0 .138.112.25.25.25h.5a.25.25 0 0 0 .25-.25v-.5a.25.25 0 0 0-.25-.25zm-11-4a.25.25 0 0 0-.25.25v.5c0 .138.112.25.25.25h.5A.25.25 0 0 0 3 9.75v-.5A.25.25 0 0 0 2.75 9zm0 2a.25.25 0 0 0-.25.25v.5c0 .138.112.25.25.25h.5a.25.25 0 0 0 .25-.25v-.5a.25.25 0 0 0-.25-.25zM2 13.25a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25z"/>
+                        <path d="M5 1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1a1 1 0 0 1 1 1v4h3a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h3V3a1 1 0 0 1 1-1zm2 14h2v-3H7zm3 0h1V3H5v12h1v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1zm0-14H6v1h4zm2 7v7h3V8zm-8 7V8H1v7z"/>
                     </svg>
                   </div>
                   <span class="logo-text">Chopper</span>
                 </div>
-                <div class="logo-tagline">Medical Scan Report</div>
+                  <div class="logo-tagline">Medical Scan Analysis Report</div>
               </div>
-              <div class="confidence">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="m12 14 4-4" />
-                  <path d="M12 14v7" />
-                  <path d="M12 14v-4a2 2 0 0 1 2-2c2.4 0 4.5 1.8 4.5 4a4.5 4.5 0 1 1-9 0" />
-                  <path d="M12 3v4" />
-                </svg>
-                ${typeof predictionResult?.confidence === 'number' 
-                  ? (predictionResult.confidence > 1 
-                    ? predictionResult.confidence.toFixed(1) 
-                    : (predictionResult.confidence * 100).toFixed(1)) 
-                  : predictionResult?.confidence}% Confidence
+                
+                <div class="header-meta">
+                  <div class="report-id">Report ID: ${scanData.id || Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</div>
+                  <div class="confidence-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20.2 7.8l-7.7 7.7-4-4-5.7 5.7"></path>
+                      <path d="M15 7h6v6"></path>
+                    </svg>
+                ${confidence}% Confidence
+                  </div>
               </div>
             </div>
             
-            <div class="summary">
+              <div class="status-bar"></div>
+            </div>
+            
+            <div class="report-title">
               <h1>
-                ${predictionResult?.prediction === 'Normal' ? 'Normal Scan Result' : 
-                 predictionResult?.prediction === 'Pneumonia' ? 'Pneumonia Detected' : 
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  ${isNormal ? 
+                  `<circle cx="12" cy="12" r="10"></circle><path d="M8 12l2 2 4-4"></path>` : 
+                  `<circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path>`}
+                </svg>
+                ${isNormal ? 'Normal Scan Result' : 
+                 isPneumonia ? 'Pneumonia Detected' : 
                  'Lung Opacity Detected'}
               </h1>
               <p>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <path d="${predictionResult?.prediction === 'Normal' 
-                    ? 'M8 12l2 2 4-4' 
-                    : 'M12 8v4M12 16h.01'}"
-                  ></path>
-                </svg>
-                ${predictionResult?.prediction === 'Normal' 
-                ? 'No signs of abnormality were detected in this scan.' 
-                : predictionResult?.prediction === 'Pneumonia'
-                  ? 'Signs of pneumonia were detected. Please consult with a healthcare professional.'
-                  : 'Lung opacity was detected. Please consult with a healthcare professional.'}
+                ${isNormal 
+                ? 'No signs of abnormality were detected in this chest X-ray scan.' 
+                : isPneumonia
+                  ? 'Signs of pneumonia were detected in this chest X-ray. Please consult with a healthcare professional.'
+                  : 'Lung opacity was detected in this chest X-ray. Please consult with a healthcare professional.'}
               </p>
             </div>
             
-            <div class="content">
+            <div class="report-content">
+              <div class="report-grid">
               <div class="section">
+                  <div class="section-header">
                 <h2>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -881,110 +1185,211 @@ const ScanPage = () => {
                   </svg>
                   Scan Details
                 </h2>
-                <div class="row">
-                  <span class="label">Result Status</span>
-                  <span class="value highlight">${predictionResult?.prediction}</span>
                 </div>
-                <div class="row">
-                  <span class="label">Report ID</span>
-                  <span class="value">${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</span>
+                  <div class="section-content">
+                    <div class="info-row">
+                      <span class="info-label">Result Status</span>
+                      <span class="info-value highlight">${scanData.prediction || scanData.result}</span>
+                </div>
+                    <div class="info-row">
+                      <span class="info-label">Report ID</span>
+                      <span class="info-value">${scanData.id || Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Analysis Date</span>
+                      <span class="info-value">${format(new Date(), "MMMM d, yyyy")}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Examination Type</span>
+                      <span class="info-value">Chest X-Ray Analysis</span>
+                    </div>
                 </div>
               </div>
 
               <div class="section">
+                  <div class="section-header">
                 <h2>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20.2 7.8l-7.7 7.7-4-4-5.7 5.7"></path>
-                    <path d="M15 7h6v6"></path>
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                   </svg>
-                  Confidence Metrics
+                      Analysis Information
                 </h2>
-                <div class="row">
-                  <span class="label">Model Confidence</span>
-                  <span class="value">${typeof predictionResult?.confidence === 'number' 
-                    ? (predictionResult.confidence > 1 
-                      ? predictionResult.confidence.toFixed(1) 
-                      : (predictionResult.confidence * 100).toFixed(1)) 
-                    : predictionResult?.confidence}%</span>
                 </div>
-                <div class="row">
-                  <span class="label">Analysis Type</span>
-                  <span class="value">AI-Powered Detection</span>
+                  <div class="section-content">
+                    <div class="info-row">
+                      <span class="info-label">Model Confidence</span>
+                      <span class="info-value">${confidence}%</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Analysis Method</span>
+                      <span class="info-value">AI-Powered Detection</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Algorithm</span>
+                      <span class="info-value">Deep Learning CNN</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Provider</span>
+                      <span class="info-value">Chopper Health AI</span>
+                    </div>
                 </div>
               </div>
 
-              ${predictionResult?.classProbs ? `
-              <div class="section probabilities">
+              ${scanData.classProbs ? `
+                <div class="section full-width">
+                  <div class="section-header">
                 <h2>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M2 12h10"></path>
-                    <path d="M12 2v10"></path>
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M9 16l3 3 8-8"></path>
+                        <path d="M2 20h20"></path>
+                        <path d="M5 20V8.2c0-.4.1-.8.3-1.1l2.4-3.5a2 2 0 0 1 3.3 0l2.4 3.5c.2.3.3.7.3 1.1V20"></path>
+                        <path d="M10 20V8.2c0-.4.1-.8.3-1.1l2.4-3.5a2 2 0 0 1 3.3 0l2.4 3.5c.2.3.3.7.3 1.1V20"></path>
                   </svg>
                   Classification Probabilities
                 </h2>
-                ${Object.entries(predictionResult.classProbs as Record<string, number>).map(([className, prob]) => {
+                  </div>
+                  <div class="section-content">
+                ${Object.entries(scanData.classProbs as Record<string, number>).map(([className, prob]) => {
                   const percentage = typeof prob === 'number' 
                     ? (prob > 1 ? prob : prob * 100).toFixed(1)
                     : prob;
+                      const isCurrent = className === (scanData.prediction || scanData.result);
                   return `
-                    <div class="row-probabilities">
-                      <span class="label">${className}</span>
-                      <div class="probability-bar">
-                        <div class="probability-value ${className === predictionResult.prediction ? 'current' : ''}" style="width: ${percentage}%"></div>
+                        <div class="probability-row">
+                          <div class="probability-label">${className}</div>
+                          <div class="probability-bar-container">
+                            <div class="probability-bar ${isCurrent ? 'current' : ''}" style="width: ${percentage}%"></div>
                       </div>
-                      <span class="value ${className === predictionResult.prediction ? 'highlight' : ''}">
+                          <div class="probability-value ${isCurrent ? 'highlight' : ''}">
                         ${percentage}%
-                      </span>
+                          </div>
                     </div>
                   `;
                 }).join('')}
+                  </div>
               </div>
               ` : ''}
 
-              <div class="section recommendations">
+              ${scanData.image ? `
+                <div class="section full-width">
+                  <div class="section-header">
+                <h2>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                      Chest X-ray Image
+                </h2>
+                  </div>
+                  <div class="section-content">
+                    <div class="image-container">
+                <img src="${scanData.image}" alt="Chest X-ray Image" class="scan-image" />
+                    </div>
+                  </div>
+              </div>
+              ` : ''}
+
+                <div class="section full-width">
+                  <div class="section-header">
                 <h2>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                     <path d="M22 4 12 14.01l-3-3"></path>
                   </svg>
-                  Recommendations
+                      Medical Recommendations
                 </h2>
-                ${predictionResult?.prediction === 'Normal' 
-                  ? `<p>Your scan appears normal. However, if you experience any symptoms or concerns, 
-                     please consult with a healthcare professional for further evaluation.</p>`
-                  : `<p>Based on the analysis, ${predictionResult?.prediction === 'Pneumonia' ? 'signs of pneumonia' : 'lung opacity'} were detected. We recommend:</p>
-                     <ul>
-                       <li>Schedule a consultation with a healthcare professional</li>
-                       <li>Monitor your symptoms closely</li>
-                       <li>Follow up with additional tests if recommended</li>
-                     </ul>`
+                  </div>
+                  <div class="section-content">
+                ${isNormal 
+                      ? `<p>Your chest X-ray appears normal. However, if you experience any respiratory symptoms or health concerns, please consult with a healthcare professional for comprehensive evaluation.</p>
+                        <p class="disclaimer">Note: AI analysis should be confirmed by a healthcare professional. This report does not replace medical advice.</p>`
+                      : `<p>Based on the analysis of your chest X-ray, ${isPneumonia ? 'signs of pneumonia' : 'lung opacity'} were detected. We strongly recommend:</p>
+                        <ul class="recommendations-list">
+                          <li>Schedule a consultation with a healthcare professional as soon as possible</li>
+                          <li>Monitor your symptoms closely and seek immediate medical attention if symptoms worsen</li>
+                          <li>Follow up with additional tests if recommended by your healthcare provider</li>
+                          <li>Continue any prescribed medications unless otherwise directed by your doctor</li>
+                        </ul>
+                        <p class="disclaimer">Important: This AI analysis should be validated by a healthcare professional. Seek medical attention promptly.</p>`
                 }
+                  </div>
               </div>
             </div>
           </div>
           
-          <div class="button-container">
-            <button class="print-button" onclick="window.print()">Print as PDF</button>
-            <button class="download-button" onclick="window.close()">Close</button>
+            <div class="report-footer">
+              <div>Generated by Chopper Health AI on ${format(new Date(), "MMMM d, yyyy")}</div>
+              <div class="disclaimer">This report is generated using artificial intelligence and should be interpreted by a healthcare professional.</div>
+            </div>
+          </div>
+          
+          <div class="button-container non-printable">
+            <button class="action-button print-button" onclick="window.print()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              Print Report
+            </button>
+            <button class="action-button download-button" onclick="savePDF()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Save as PDF
+            </button>
+            <button class="action-button close-button" onclick="window.close()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+              </svg>
+              Close
+            </button>
           </div>
           
           <script>
-            // Auto-print when the page loads
+            // Functions for handling report actions
+            function savePDF() {
+              // Guide user to save as PDF
+              alert("To save as PDF: Click 'Print', then select 'Save as PDF' as the destination in the print dialog.");
+              setTimeout(() => {
+                window.print();
+              }, 500);
+            }
+            
+            // Auto-execute when the page loads
             window.onload = function() {
               // Set print settings to hide headers and footers
               const style = document.createElement('style');
-              style.textContent = '@page { margin: 10mm; size: A4; }';
+              style.textContent = '@page { size: A4 portrait; margin: 8mm; }';
               document.head.appendChild(style);
               
-              // Focus on content only
-              document.body.classList.add('print-only-content');
+              // Scale content to fit a single page
+              document.querySelector('.report-container').style.transformOrigin = 'top left';
               
-              // Show a message to guide the user
+              // Detect if content exceeds page and adjust scale if needed
               setTimeout(() => {
-                alert("To save as PDF: Click 'Print' button, then select 'Save as PDF' as the destination in the print dialog.");
-              }, 500);
+                const container = document.querySelector('.report-container');
+                if (container) {
+                  const height = container.scrollHeight;
+                  const maxHeight = 277; // mm (A4 height minus margins)
+                  const mmToPx = 3.779527559; // conversion factor for mm to px
+                  const maxHeightPx = maxHeight * mmToPx;
+                  
+                  if (height > maxHeightPx) {
+                    // Calculate scale to fit on one page
+                    const scale = maxHeightPx / height;
+                    container.style.transform = \`scale(\${scale})\`;
+                    container.style.width = \`\${100/scale}%\`;
+                  }
+                }
+                window.scrollTo(0, 0);
+              }, 100);
             }
           </script>
         </body>
@@ -1018,6 +1423,11 @@ const ScanPage = () => {
     }
   };
 
+  // Replace the handleDownloadPDF function with the consolidated one
+  const handleDownloadPDF = () => {
+    generatePDFReport(predictionResult);
+  };
+
   const renderPredictionResult = () => {
     if (!predictionResult) return null;
 
@@ -1034,33 +1444,33 @@ const ScanPage = () => {
     return (
       <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500" id="prediction-result">
         <div className={cn(
-          "rounded-xl p-6 border-2 transition-all duration-300",
+          "rounded-xl p-4 sm:p-6 border-2 transition-all duration-300",
           isNormal 
             ? "bg-green-50/80 border-green-200 shadow-lg shadow-green-100/50" 
             : "bg-red-50/80 border-red-200 shadow-lg shadow-red-100/50"
         )}>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-0">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="relative flex-shrink-0">
                 {isNormal ? (
                   <div className="relative">
-                    <CheckCircle className="w-12 h-12 text-green-500" />
+                    <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />
                     <div className="absolute -inset-2 bg-green-400/20 rounded-full animate-pulse"></div>
                   </div>
                 ) : (
                   <div className="relative">
-                    <AlertCircle className="w-12 h-12 text-red-500" />
+                    <AlertCircle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500" />
                     <div className="absolute -inset-2 bg-red-400/20 rounded-full animate-pulse"></div>
                   </div>
                 )}
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
                   {isNormal ? "Normal Scan Result" : 
                    isPneumonia ? "Pneumonia Detected" : 
                    "Lung Opacity Detected"}
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   {isNormal 
                     ? "No signs of abnormality were detected in this scan." 
                     : isPneumonia
@@ -1069,9 +1479,9 @@ const ScanPage = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-start sm:self-auto">
               <div className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium",
+                "px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium",
                 isNormal 
                   ? "bg-green-100 text-green-800 ring-1 ring-green-600/20" 
                   : "bg-red-100 text-red-800 ring-1 ring-red-600/20"
@@ -1082,29 +1492,29 @@ const ScanPage = () => {
               <button
                 onClick={handleDownloadPDF}
                 className={cn(
-                  "p-2 rounded-full transition-all duration-300 flex items-center justify-center",
+                  "p-1.5 sm:p-2 rounded-full transition-all duration-300 flex items-center justify-center",
                   isNormal 
                     ? "bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 ring-1 ring-green-600/20" 
                     : "bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 ring-1 ring-red-600/20"
                 )}
                 title="Download as PDF"
               >
-                <Download className="w-5 h-5" />
+                <Download className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>
 
           {/* Detailed Report Section - Updated to match design */}
-          <div className="mt-6 grid gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Scan Details</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
+          <div className="mt-4 sm:mt-6 grid gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Scan Details</h4>
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-gray-500">Analysis Date</span>
                     <span className="font-medium">{format(new Date(), "MMMM d, yyyy")}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-gray-500">Result Status</span>
                     <span className={cn(
                       "font-medium",
@@ -1116,10 +1526,10 @@ const ScanPage = () => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Confidence Metrics</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
+              <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Confidence Metrics</h4>
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-gray-500">Model Confidence</span>
                     <span className="font-medium">
                       {(() => {
@@ -1132,7 +1542,7 @@ const ScanPage = () => {
                       })()}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-gray-500">Analysis Type</span>
                     <span className="font-medium">AI-Powered Detection</span>
                   </div>
@@ -1142,11 +1552,11 @@ const ScanPage = () => {
 
             {/* Class Probabilities Section - New section to show all classes */}
             {predictionResult.classProbs && (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Classification Probabilities</h4>
-                <div className="space-y-3">
+              <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Classification Probabilities</h4>
+                <div className="space-y-2 sm:space-y-3">
                   {Object.entries(predictionResult.classProbs as Record<string, number>).map(([className, prob]) => (
-                    <div key={className} className="flex justify-between text-sm">
+                    <div key={className} className="flex justify-between text-xs sm:text-sm">
                       <span className="text-gray-500">{className}</span>
                       <span className={cn(
                         "font-medium",
@@ -1166,23 +1576,50 @@ const ScanPage = () => {
             )}
 
             <div className="section recommendations">
-              <h2>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <path d="M22 4 12 14.01l-3-3"></path>
-                </svg>
-                Recommendations
-              </h2>
-              ${predictionResult?.prediction === 'Normal' 
-                ? `<p>Your scan appears normal. However, if you experience any symptoms or concerns, 
-                   please consult with a healthcare professional for further evaluation.</p>`
-                : `<p>Based on the analysis, ${predictionResult?.prediction === 'Pneumonia' ? 'signs of pneumonia' : 'lung opacity'} were detected. We recommend:</p>
-                   <ul>
-                     <li>Schedule a consultation with a healthcare professional</li>
-                     <li>Monitor your symptoms closely</li>
-                     <li>Follow up with additional tests if recommended</li>
-                   </ul>`
-              }
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+                            <div className="flex items-start justify-between mb-2 sm:mb-3">
+                              <h4 className="text-xs sm:text-sm font-medium text-gray-700">Recommendations</h4>
+                            </div>
+                            {predictionResult?.prediction === 'Normal' ? (
+                              <p className="text-xs sm:text-sm text-gray-600">
+                                Your scan appears normal. However, if you experience any symptoms or concerns, 
+                                please consult with a healthcare professional for further evaluation.
+                              </p>
+                            ) : (
+                              <div>
+                                <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
+                                  Based on the analysis, {predictionResult?.prediction === 'Pneumonia' ? "signs of pneumonia" : "lung opacity"} were detected. We recommend:
+                                </p>
+                                <ul className="list-disc list-inside space-y-1 sm:space-y-1.5 text-xs sm:text-sm text-gray-600 pl-1 mb-3 sm:mb-4">
+                                  <li>Schedule a consultation with a healthcare professional</li>
+                                  <li>Monitor your symptoms closely</li>
+                                  <li>Follow up with additional tests if recommended</li>
+                                </ul>
+                                <Button
+                                  onClick={() => navigate('/consultation')}
+                                  className="mt-1 sm:mt-2 relative group overflow-hidden bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-300 text-xs sm:text-sm px-3 sm:px-6 py-1.5 sm:py-2.5 rounded-lg w-full sm:w-auto"
+                                >
+                                  <span className="relative z-10 flex items-center justify-center gap-2">
+                                    Schedule Consultation
+                                    <svg 
+                                      className="h-3 w-3 sm:h-4 sm:w-4 transform transition-all duration-300 group-hover:translate-x-1" 
+                                      xmlns="http://www.w3.org/2000/svg" 
+                                      width="24" 
+                                      height="24" 
+                                      viewBox="0 0 24 24" 
+                                      fill="none" 
+                                      stroke="currentColor"
+                                      strokeWidth="2" 
+                                      strokeLinecap="round" 
+                                      strokeLinejoin="round"
+                                    >
+                                      <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                  </span>
+                                </Button>
+                              </div>
+                            )}
+                          </div>
             </div>
           </div>
         </div>
@@ -1229,73 +1666,35 @@ const ScanPage = () => {
     }
   };
 
-  // Fetch X-ray images for this user
+  // Fix fetchUserXRays to use our new helper
   const fetchUserXRays = async () => {
     setLoadingXRays(true);
-    try {
-      console.log("Fetching user X-rays...");
-      console.log("Current user:", user); // Log the current user
-      
-      // Clear previous data to prevent showing cached images
       setUserXRays([]);
+    setUserXRayError(null);
+    
+    try {
+      // Fetch user X-rays from the API
+      const response = await xrayService.getUserXRays();
+      console.log('User X-rays from API:', response);
       
-      // Fetch X-rays from the API
-      const xrays = await xrayService.getUserXRays();
-      console.log("User X-rays fetched:", xrays);
-      
-      if (!xrays || xrays.length === 0) {
-        console.log("No X-rays found for this user");
-        setUserXRays([]);
+      if (!response || response.length === 0) {
+        // No X-rays found
+        setUserXRayError('No X-ray images found for your account');
+        setLoadingXRays(false);
         return;
       }
       
-      // Log the first X-ray object structure to understand the data format
-      if (xrays.length > 0) {
-        console.log("Sample X-ray object structure:", JSON.stringify(xrays[0], null, 2));
-      }
-
-      // Filter X-rays based on user role
-      const filteredXrays = xrays.filter(xray => {
-        // If user is not available yet, don't filter
-        if (!user) {
-          console.log("No user data available for filtering");
-          return true;
-        }
-        
-        // Log each X-ray and the filter decision
-        const patientId = typeof xray.patient === 'object' ? xray.patient?.id : xray.patient;
-        const assistantId = xray.assistant?.id;
-        
-        console.log(`X-ray ${xray.id}:`, {
-          patientId,
-          assistantId,
-          userRole: user.role,
-          userId: user.id
-        });
-        
-        // Only show X-rays where the current user is the patient - regardless of role
-        const match = Number(patientId) === Number(user.id);
-        console.log(`Patient filter (${patientId} === ${user.id}): ${match}`);
-        return match;
-      });
-      
-      console.log(`Filtered ${xrays.length} X-rays to ${filteredXrays.length} based on user ID ${user?.id}`);
-      
       // Process the X-rays to ensure valid data and add timestamps to image URLs
-      const processedXrays = filteredXrays
-        .filter(xray => {
-          const valid = xray && xray.id && xray.image;
-          if (!valid) {
-            console.log("Filtering out invalid X-ray:", xray);
-          }
-          return valid;
-        })
-        .map(xray => {
+      const processedXrays = response.map(xray => {
           const timestamp = Date.now();
           
           // Add timestamp to image URL to prevent caching
           let imageUrl = xray.image;
           if (imageUrl) {
+          // First get a properly formatted URL for the environment
+          imageUrl = getProperImageUrl(imageUrl);
+          
+          // Then add cache busting
             imageUrl = imageUrl.includes('?') 
               ? `${imageUrl}&t=${timestamp}` 
               : `${imageUrl}?t=${timestamp}`;
@@ -1304,193 +1703,58 @@ const ScanPage = () => {
           return {
             ...xray,
             image: imageUrl,
-            uniqueKey: `xray-${xray.id}-${timestamp}`
+          upload_date: xray.upload_date || new Date().toISOString()
           };
         });
       
-      console.log("Processed X-rays for display:", processedXrays);
-      setUserXRays(processedXrays);
+      // Sort newest to oldest
+      const sortedXrays = processedXrays.sort((a, b) => {
+        return new Date(b.upload_date).getTime() - new Date(a.upload_date).getTime();
+      });
+      
+      console.log('Processed X-rays:', sortedXrays);
+      
+      setUserXRays(sortedXrays);
+      setLoadingXRays(false);
     } catch (error) {
-      console.error('Error fetching X-ray images:', error);
-      customToast.error('Unable to load X-ray images. Please try again later.');
-      setUserXRays([]);
-    } finally {
+      console.error('Error fetching user X-rays:', error);
+      setUserXRayError(`Failed to load X-rays: ${error.message}`);
       setLoadingXRays(false);
     }
   };
 
   // Function to analyze user X-rays
   const analyzeUserXRay = async (xrayId: number | string) => {
-    const numericId = typeof xrayId === 'string' ? parseInt(xrayId, 10) : xrayId;
     try {
       setAnalyzingXRay(true);
-      setSelectedXRay({ id: numericId });
+      setSelectedXRay({ id: Number(xrayId) });
       
-      // Try to get the X-ray image directly from the API
+      // Find the X-ray in our loaded X-rays
+      const targetXray = userXRays.find(xray => xray.id === Number(xrayId));
+      
+      if (!targetXray || !targetXray.image) {
+        setAnalysisError('X-ray image not found or invalid');
+        setAnalyzingXRay(false);
+        return;
+        }
+        
+      console.log('Attempting to analyze X-ray:', targetXray);
+      
       try {
-        const xrayResult = await xrayService.getXRayById(numericId);
-        if (!xrayResult) {
-          throw new Error('No X-ray result found');
-        }
+        // Get the raw image URL
+        const imageUrl = targetXray.image;
+        console.log('Original image URL:', imageUrl);
         
-        console.log("Found X-ray result:", xrayResult);
+        // Use our helper function to fetch the image safely
+        const imageBlob = await fetchImageSafely(imageUrl);
+        console.log('Successfully fetched image blob');
         
-        // Check if user has permission to access this X-ray
-        if (user) {
-          const patientId = typeof xrayResult.patient === 'object' ? xrayResult.patient?.id : xrayResult.patient;
-          const assistantId = xrayResult.assistant?.id;
-          
-          const hasPermission = 
-            user.role === 'admin' || 
-            user.role === 'doctor' || 
-            (user.role === 'patient' && patientId === user.id) || 
-            (user.role === 'assistant' && assistantId === user.id);
-          
-          console.log(`Permission check for X-ray ${numericId}:`, {
-            userRole: user.role,
-            userId: user.id,
-            patientId,
-            assistantId,
-            hasPermission
-          });
-          
-          if (!hasPermission) {
-            throw new Error('You do not have permission to view this X-ray');
-          }
-        }
-        
-        // Set the current appointment ID if it exists
-        if (xrayResult.appointment) {
-          setCurrentAppointmentId(xrayResult.appointment.toString());
-        }
-        
-        // Ensure we have a valid image URL
-        if (!xrayResult.image) {
-          throw new Error('X-ray result has no image');
-        }
-        
-        // Try to load the image securely
-        const imageUrl = xrayResult.image;
-        console.log("Attempting to fetch image from:", imageUrl);
-        
-        // Ensure the URL uses HTTPS
-        let secureImageUrl = imageUrl;
-        if (imageUrl.startsWith('http://')) {
-          secureImageUrl = imageUrl.replace('http://', 'https://');
-          console.log("Converted to HTTPS URL:", secureImageUrl);
-        }
-        
-        try {
-          // First try direct fetch with secure URL
-          const response = await fetch(secureImageUrl, {
-            credentials: 'include',
-            mode: 'cors'
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Failed to fetch image directly: ${response.status}`);
-          }
-          
-          const blob = await response.blob();
-          const file = new File([blob], `xray-${numericId}.jpg`, { type: blob.type || 'image/jpeg' });
+        // Create a file object from the blob
+        const numericId = typeof xrayId === 'string' ? xrayId : xrayId.toString();
+        const file = new File([imageBlob], `xray-${numericId}.jpg`, { type: imageBlob.type || 'image/jpeg' });
           
           // Submit for analysis
           await handleAnalyzeScan(file, 'quickscan');
-        } catch (fetchError) {
-          console.error("Direct fetch failed, trying proxy:", fetchError);
-          
-          // If direct fetch fails, try using backend proxy
-          const token = localStorage.getItem('token');
-          if (!token) {
-            throw new Error("Authentication required");
-          }
-          
-          try {
-            // Try a direct authenticated fetch first
-            const authResponse = await fetch(secureImageUrl, {
-              headers: {
-                'Authorization': `Token ${token}`,
-              },
-              credentials: 'include'
-            });
-            
-            if (authResponse.ok) {
-              const authBlob = await authResponse.blob();
-              const authFile = new File([authBlob], `xray-${numericId}.jpg`, { type: authBlob.type || 'image/jpeg' });
-              
-              // Submit for analysis
-              await handleAnalyzeScan(authFile, 'quickscan');
-              return;
-            }
-          } catch (authFetchError) {
-            console.error("Authenticated direct fetch failed, trying proxy:", authFetchError);
-          }
-          
-          const encodedUrl = encodeURIComponent(imageUrl);
-          // Use HTTPS for proxy URL in both development and production
-          const proxyUrl = `${import.meta.env.DEV ? 'https://localhost:8000' : 'https://backends-production-d57e.up.railway.app'}/api/proxy-image/?url=${encodedUrl}`;
-          
-          console.log("Attempting proxy fetch from:", proxyUrl);
-          // Refresh token from localStorage to ensure it's current
-          const currentToken = localStorage.getItem('token');
-          
-          if (!currentToken) {
-            console.error("No authentication token found for proxy request");
-            throw new Error("Authentication required for image proxy");
-          }
-          
-          const proxyResponse = await fetch(proxyUrl, {
-            headers: {
-              'Authorization': `Token ${currentToken}`,
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            credentials: 'include',
-            mode: 'cors'
-          });
-          
-          if (!proxyResponse.ok) {
-            console.error(`Proxy fetch failed with status: ${proxyResponse.status}`);
-            const errorText = await proxyResponse.text();
-            console.error(`Error response: ${errorText}`);
-            
-            // Use a placeholder image as a last resort
-            console.log("Using placeholder image as fallback");
-            customToast.warning("Using placeholder image due to fetch issues. Results may not be accurate.");
-            
-            // Create a simple placeholder image
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.fillStyle = '#f0f0f0';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              ctx.font = '24px Arial';
-              ctx.fillStyle = '#666';
-              ctx.textAlign = 'center';
-              ctx.fillText('Image Unavailable', canvas.width/2, canvas.height/2);
-              ctx.fillText(`ID: ${numericId}`, canvas.width/2, canvas.height/2 + 40);
-              
-              canvas.toBlob((blob) => {
-                if (blob) {
-                  const file = new File([blob], `placeholder-${numericId}.jpg`, { type: 'image/jpeg' });
-                  handleAnalyzeScan(file, 'quickscan').catch(console.error);
-                } else {
-                  throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
-                }
-              }, 'image/jpeg');
-              return;
-            } else {
-              throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
-            }
-          }
-          
-          const proxyBlob = await proxyResponse.blob();
-          const proxyFile = new File([proxyBlob], `xray-${numericId}.jpg`, { type: proxyBlob.type || 'image/jpeg' });
-          
-          // Submit for analysis
-          await handleAnalyzeScan(proxyFile, 'quickscan');
-        }
           
           // Scroll to the results section
           setTimeout(() => {
@@ -1500,149 +1764,15 @@ const ScanPage = () => {
             }
           }, 500);
           
-          return;
       } catch (error) {
-        console.error("Error fetching X-ray by ID, will try appointment results instead:", error);
-        
-        // If X-ray fetching failed, try to get from appointment if we have an ID
-        if (typeof xrayId === 'string' && xrayId.startsWith('appointment-')) {
-          const appointmentId = xrayId.replace('appointment-', '');
-          if (!appointmentId) {
-            throw new Error('Invalid appointment ID format');
-          }
-          
-          console.log(`Fetching details for appointment #${appointmentId}`);
-          
-          try {
-            const appointment = await appointmentService.getAppointment(Number(appointmentId));
-        if (appointment && appointment.xray_result && appointment.xray_result.image) {
-          console.log("Found appointment with X-ray:", appointment);
-          
-              // Try to load the image
-              const imageUrl = appointment.xray_result.image;
-              
-              // Ensure the URL uses HTTPS
-              let secureImageUrl = imageUrl;
-              if (imageUrl.startsWith('http://')) {
-                secureImageUrl = imageUrl.replace('http://', 'https://');
-            }
-              
-              try {
-                // First try direct fetch with secure URL
-                const response = await fetch(secureImageUrl, {
-                  credentials: 'include',
-                  mode: 'cors'
-                });
-                
-                if (!response.ok) {
-                  throw new Error(`Failed to fetch image: ${response.status}`);
-                }
-                
-                const blob = await response.blob();
-                const file = new File([blob], `xray-appointment-${appointmentId}.jpg`, { type: blob.type || 'image/jpeg' });
-                
-                // Submit for analysis
-                await handleAnalyzeScan(file);
-              } catch (fetchError) {
-                console.error("Direct fetch failed for appointment image, trying proxy:", fetchError);
-                
-                // If direct fetch fails, try using backend proxy
-                const token = localStorage.getItem('token');
-                if (!token) {
-                  throw new Error("Authentication required");
-                }
-                
-                try {
-                  // Try a direct authenticated fetch first
-                  const authResponse = await fetch(secureImageUrl, {
-                    headers: {
-                      'Authorization': `Token ${token}`,
-                    },
-                    credentials: 'include'
-                  });
-                  
-                  if (authResponse.ok) {
-                    const authBlob = await authResponse.blob();
-                    const authFile = new File([authBlob], `xray-appointment-${appointmentId}.jpg`, { type: authBlob.type || 'image/jpeg' });
-                    
-                    // Submit for analysis
-                    await handleAnalyzeScan(authFile);
-                    return;
-                  }
-                } catch (authFetchError) {
-                  console.error("Authenticated direct fetch failed for appointment image, trying proxy:", authFetchError);
-                }
-                
-                const encodedUrl = encodeURIComponent(imageUrl);
-                const proxyUrl = `${import.meta.env.DEV ? 'https://localhost:8000' : 'https://backends-production-d57e.up.railway.app'}/api/proxy-image/?url=${encodedUrl}`;
-                
-                const proxyResponse = await fetch(proxyUrl, {
-                  headers: {
-                    'Authorization': `Token ${token}`,
-                    'X-Requested-With': 'XMLHttpRequest'
-                  },
-                  credentials: 'include',
-                  mode: 'cors'
-                });
-                
-                if (!proxyResponse.ok) {
-                  console.error(`Proxy fetch failed with status: ${proxyResponse.status}`);
-                  const errorText = await proxyResponse.text();
-                  console.error(`Error response: ${errorText}`);
-                  
-                  // Use a placeholder image as a last resort
-                  console.log("Using placeholder image as fallback for appointment");
-                  customToast.warning("Using placeholder image due to fetch issues. Results may not be accurate.");
-                  
-                  // Create a simple placeholder image
-                  const canvas = document.createElement('canvas');
-                  canvas.width = 512;
-                  canvas.height = 512;
-                  const ctx = canvas.getContext('2d');
-                  if (ctx) {
-                    ctx.fillStyle = '#f0f0f0';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.font = '24px Arial';
-                    ctx.fillStyle = '#666';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Image Unavailable', canvas.width/2, canvas.height/2);
-                    ctx.fillText(`Appointment ID: ${appointmentId}`, canvas.width/2, canvas.height/2 + 40);
-                    
-                    canvas.toBlob((blob) => {
-                      if (blob) {
-                        const file = new File([blob], `placeholder-appointment-${appointmentId}.jpg`, { type: 'image/jpeg' });
-                        handleAnalyzeScan(file).catch(console.error);
-                      } else {
-                        throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
-                      }
-                    }, 'image/jpeg');
-                    return;
-                  } else {
-                    throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
-                  }
-                }
-                
-                const proxyBlob = await proxyResponse.blob();
-                const proxyFile = new File([proxyBlob], `xray-appointment-${appointmentId}.jpg`, { type: proxyBlob.type || 'image/jpeg' });
-                
-                // Submit for analysis
-                await handleAnalyzeScan(proxyFile);
-              }
-              
-              return;
-        } else {
-          throw new Error('No X-ray found in appointment');
-            }
-          } catch (appointmentError) {
-            console.error(`Error fetching appointment #${appointmentId}:`, appointmentError);
-            throw new Error(`Could not retrieve appointment data: ${appointmentError.message}`);
-          }
-        }
+        console.error('Error fetching X-ray image:', error);
+        customToast.error('Failed to load X-ray image for analysis');
+        setAnalysisError('Failed to load X-ray image: ' + error.message);
+        setAnalyzingXRay(false);
       }
     } catch (error) {
-      console.error("Error analyzing user X-ray:", error);
-      customToast.error("Failed to analyze X-ray. " + (error.message || "Please try again."));
-    } finally {
+      console.error('Error in analyzeUserXRay:', error);
+      setAnalysisError('An error occurred: ' + error.message);
       setAnalyzingXRay(false);
     }
   };
@@ -1666,7 +1796,7 @@ const ScanPage = () => {
       const predictionResponse = await api.post('/predict-scan/', getFormDataForFile(file), {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Token ${token}`
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -1713,7 +1843,7 @@ const ScanPage = () => {
       await api.post('/scans/', scanFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Token ${token}`
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -1796,509 +1926,14 @@ const ScanPage = () => {
   
   // Function to open image in a dialog
   const openImageDialog = (id: number, imageUrl: string) => {
-    setSelectedImageDialog({ id, url: imageUrl });
+    // Format the image URL properly using our helper
+    const formattedUrl = getProperImageUrl(imageUrl);
+    setSelectedImageDialog({ id, url: formattedUrl });
   };
   
   // Function to close the image dialog
   const closeImageDialog = () => {
     setSelectedImageDialog({ id: null, url: null });
-  };
-
-  // Add PDF download function for history scans
-  const handleHistoryScanDownloadPDF = (scan: Scan) => {
-    if (!scan) return;
-    
-    const isNormal = scan.result?.toLowerCase() === 'normal';
-    const isPneumonia = scan.result?.toLowerCase() === 'pneumonia';
-    const confidence = scan.confidence_score 
-      ? (scan.confidence_score > 1 
-        ? scan.confidence_score.toFixed(1) 
-        : (scan.confidence_score * 100).toFixed(1)) 
-      : null;
-    
-    const date = format(new Date(), "yyyy-MM-dd");
-    const filename = `scan-report-${scan.id}-${date}.pdf`;
-    
-    // Convert scan data to HTML content with improved styling
-    // eslint-disable-next-line
-    const htmlContent = `
-      <html>
-        <head>
-          <title>Chopper Scan Report</title>
-          <style>
-            :root {
-              --primary-color: #00C1D4;
-              --highlight-blue: #3b82f6;
-              --tw-gradient-from-position: ;
-              --tw-gradient-to-position: ;
-            }
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-            body {
-              font-family: 'Inter', sans-serif;
-              padding: 15px;
-              color: #333;
-              max-width: 800px;
-              margin: 0 auto;
-              line-height: 1.4;
-              font-size: 18pt;
-            }
-            /* Print-specific styles to ensure single page */
-            @media print {
-              body {
-                padding: 0;
-                margin: 0;
-              }
-              .report-container {
-                page-break-inside: avoid;
-                max-height: 100%;
-                overflow: hidden;
-                margin-top: 15mm; /* Add top margin for print */
-              }
-              @page {
-                size: A4;
-                margin: 10mm;
-                margin-top: 20mm; /* Add extra top margin */
-                /* Remove page headers and footers */
-                margin-header: 0;
-                margin-footer: 0;
-                marks: none;
-              }
-              /* Hide all headers and footers added by the browser */
-              html {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-              /* Remove URL, page numbers, date from print */
-              @page :first {
-                margin-top: 0;
-              }
-              @page :left {
-                margin-left: 0;
-              }
-              @page :right {
-                margin-right: 0;
-              }
-              @page :footer {
-                display: none;
-              }
-              @page :header {
-                display: none;
-              }
-            }
-            .report-container {
-              border: 1px solid #e5e7eb;
-              border-radius: 10px;
-              overflow: hidden;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            }
-            .header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              padding: 12px 16px;
-              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
-              color: white;
-            }
-            .logo-section {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-start;
-              gap: 4px;
-            }
-            .logo {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              font-size: 24px;
-              font-weight: bold;
-              color: #00C1D4;
-            }
-            .logo-icon {
-              background-color: #00C1D4;
-              color: white;
-              width: 32px;
-              height: 32px;
-              border-radius: 6px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }
-            .logo-text {
-              --tw-gradient-from: var(--primary-color) var(--tw-gradient-from-position);
-              --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
-              --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-              --tw-gradient-to: var(--highlight-blue) var(--tw-gradient-to-position);
-              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              font-size: 24px;
-              letter-spacing: -0.5px;
-            }
-            .logo-tagline {
-              font-size: 12px;
-              color: #64748b;
-              font-weight: 500;
-              margin-left: 40px;
-              letter-spacing: 0.5px;
-            }
-            h1 {
-              margin: 0;
-              color: ${isNormal ? '#15803d' : '#b91c1c'};
-              font-size: 20px;
-              font-weight: bold;
-            }
-            .confidence {
-              background-color: ${isNormal ? '#bbf7d0' : '#fecaca'};
-              color: ${isNormal ? '#166534' : '#b91c1c'};
-              padding: 6px 12px;
-              border-radius: 16px;
-              font-weight: bold;
-              display: flex;
-              align-items: center;
-              gap: 4px;
-            }
-            .summary {
-              background-color: ${isNormal ? '#f0fdf4' : '#fef2f2'};
-              padding: 12px 16px;
-              border-bottom: 1px solid #e5e7eb;
-            }
-            .summary p {
-              margin: 0;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            }
-            .content {
-              padding: 16px;
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 16px;
-            }
-            .section {
-              background-color: white;
-              border: 1px solid #e5e7eb;
-              border-radius: 6px;
-              padding: 12px;
-            }
-            .section h2 {
-              font-size: 16px;
-              margin-top: 0;
-              margin-bottom: 8px;
-              color: #4b5563;
-              display: flex;
-              align-items: center;
-              gap: 6px;
-              border-bottom: 1px solid #f3f4f6;
-              padding-bottom: 6px;
-            }
-            .section h2 svg {
-              flex-shrink: 0;
-              width: 14px;
-              height: 14px;
-            }
-            .row {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 6px;
-            }
-            .label {
-              color: #6b7280;
-              font-size: 12px;
-            }
-            .value {
-              font-weight: 500;
-              font-size: 12px;
-            }
-            .value.highlight {
-              color: ${isNormal ? '#16a34a' : '#dc2626'};
-              font-weight: 600;
-            }
-            .probabilities {
-              grid-column: 1 / -1;
-            }
-            .recommendations {
-              grid-column: 1 / -1;
-              background-color: #f9fafb;
-            }
-            ul {
-              margin: 6px 0;
-              padding-left: 20px;
-            }
-            li {
-              margin-bottom: 2px;
-              font-size: 12px;
-            }
-            .row-probabilities {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              padding: 4px 0;
-              border-bottom: 1px dashed #f3f4f6;
-            }
-            .probability-bar {
-              flex-grow: 1;
-              height: 4px;
-              background-color: #e5e7eb;
-              border-radius: 2px;
-              margin: 0 12px;
-              overflow: hidden;
-              width: 100%;
-              max-width: 100px;
-            }
-            .probability-value {
-              height: 100%;
-              background-color: #00C1D4;
-              border-radius: 2px;
-            }
-            .current {
-              background-color: ${predictionResult?.prediction === 'Normal' ? '#15803d' : '#b91c1c'};
-            }
-            svg {
-              width: 14px;
-              height: 14px;
-            }
-            
-            /* Download button */
-            .download-button {
-              display: inline-block;
-              margin: 20px auto;
-              padding: 10px 20px;
-              background: linear-gradient(to right, var(--primary-color), var(--highlight-blue));
-              color: white;
-              border-radius: 5px;
-              text-decoration: none;
-              font-weight: bold;
-              cursor: pointer;
-              transition: all 0.3s ease;
-            }
-            
-            .download-button:hover {
-              background: linear-gradient(to right, var(--highlight-blue), var(--primary-color));
-              transform: translateY(-1px);
-              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            }
-            
-            /* Print button */
-            .print-button {
-              display: inline-block;
-              margin: 20px 10px;
-              padding: 10px 20px;
-              background: linear-gradient(to right, #4b5563, #6b7280);
-              color: white;
-              border-radius: 5px;
-              text-decoration: none;
-              font-weight: bold;
-              cursor: pointer;
-              transition: all 0.3s ease;
-            }
-            
-            .print-button:hover {
-              background: linear-gradient(to right, #6b7280, #4b5563);
-              transform: translateY(-1px);
-              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            }
-            
-            .button-container {
-              text-align: center;
-              margin-top: 20px;
-            }
-            
-            @media print {
-              .button-container {
-                display: none;
-              }
-            }
-            
-            /* Image styling */
-            .scan-image {
-              width: 100%;
-              max-height: 150px;
-              object-fit: contain;
-              border-radius: 4px;
-              border: 1px solid #e5e7eb;
-              margin-bottom: 8px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="report-container">
-            <div class="header">
-              <div class="logo-section">
-                <div class="logo">
-                  <div class="logo-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                    </svg>
-                  </div>
-                  <span class="logo-text">Chopper</span>
-                </div>
-                <div class="logo-tagline">Medical Scan Report</div>
-              </div>
-              <div class="confidence">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="m12 14 4-4" />
-                  <path d="M12 14v7" />
-                  <path d="M12 14v-4a2 2 0 0 1 2-2c2.4 0 4.5 1.8 4.5 4a4.5 4.5 0 1 1-9 0" />
-                  <path d="M12 3v4" />
-                </svg>
-                ${typeof predictionResult?.confidence === 'number' 
-                  ? (predictionResult.confidence > 1 
-                    ? predictionResult.confidence.toFixed(1) 
-                    : (predictionResult.confidence * 100).toFixed(1)) 
-                  : predictionResult?.confidence}% Confidence
-              </div>
-            </div>
-            
-            <div class="summary">
-              <h1>
-                ${predictionResult?.prediction === 'Normal' ? 'Normal Scan Result' : 
-                 predictionResult?.prediction === 'Pneumonia' ? 'Pneumonia Detected' : 
-                 'Lung Opacity Detected'}
-              </h1>
-              <p>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <path d="${predictionResult?.prediction === 'Normal' 
-                    ? 'M8 12l2 2 4-4' 
-                    : 'M12 8v4M12 16h.01'}"
-                  ></path>
-                </svg>
-                ${predictionResult?.prediction === 'Normal' 
-                ? 'No signs of abnormality were detected in this scan.' 
-                : predictionResult?.prediction === 'Pneumonia'
-                  ? 'Signs of pneumonia were detected. Please consult with a healthcare professional.'
-                  : 'Lung opacity was detected. Please consult with a healthcare professional.'}
-              </p>
-            </div>
-            
-            <div class="content">
-              <div class="section">
-                <h2>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <path d="M14 2v6h6"></path>
-                    <path d="M16 13H8"></path>
-                    <path d="M16 17H8"></path>
-                    <path d="M10 9H8"></path>
-                  </svg>
-                  Scan Details
-                </h2>
-                <div class="row">
-                  <span class="label">Result Status</span>
-                  <span class="value highlight">${predictionResult?.prediction}</span>
-                </div>
-                <div class="row">
-                  <span class="label">Report ID</span>
-                  <span class="value">${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</span>
-                </div>
-              </div>
-
-              <div class="section">
-                <h2>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20.2 7.8l-7.7 7.7-4-4-5.7 5.7"></path>
-                    <path d="M15 7h6v6"></path>
-                  </svg>
-                  Confidence Metrics
-                </h2>
-                <div class="row">
-                  <span class="label">Model Confidence</span>
-                  <span class="value">${confidence}%</span>
-                </div>
-                <div class="row">
-                  <span class="label">Analysis Type</span>
-                  <span class="value">AI-Powered Detection</span>
-                </div>
-              </div>
-
-              ${scan.image ? `
-              <div class="section" style="grid-column: 1 / -1;">
-                <h2>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                  </svg>
-                  Scan Image
-                </h2>
-                <img src="${scan.image}" alt="Chest X-ray Image" class="scan-image" />
-              </div>
-              ` : ''}
-
-              <div class="section recommendations">
-                <h2>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <path d="M22 4 12 14.01l-3-3"></path>
-                  </svg>
-                  Recommendations
-                </h2>
-                ${isNormal 
-                  ? `<p>Your scan appears normal. However, if you experience any symptoms or concerns, 
-                     please consult with a healthcare professional for further evaluation.</p>`
-                  : `<p>Based on the analysis, ${isPneumonia ? 'signs of pneumonia' : 'lung opacity'} were detected. We recommend:</p>
-                     <ul>
-                       <li>Schedule a consultation with a healthcare professional</li>
-                       <li>Monitor your symptoms closely</li>
-                       <li>Follow up with additional tests if recommended</li>
-                     </ul>`
-                }
-              </div>
-            </div>
-          </div>
-          
-          <div class="button-container">
-            <button class="print-button" onclick="window.print()">Print as PDF</button>
-            <button class="download-button" onclick="window.close()">Close</button>
-          </div>
-          
-          <script>
-            // Auto-print when the page loads
-            window.onload = function() {
-              // Set print settings to hide headers and footers
-              const style = document.createElement('style');
-              style.textContent = '@page { margin: 10mm; size: A4; }';
-              document.head.appendChild(style);
-              
-              // Focus on content only
-              document.body.classList.add('print-only-content');
-              
-              // Show a message to guide the user
-              setTimeout(() => {
-                alert("To save as PDF: Click 'Print' button, then select 'Save as PDF' as the destination in the print dialog.");
-              }, 500);
-            }
-          </script>
-        </body>
-      </html>
-    `;
-    
-    // Create a Blob with the HTML content
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    
-    // Open the HTML content in a new window for printing/saving as PDF
-    const printWindow = window.open(url, '_blank');
-    
-    if (printWindow) {
-      // Add script to trigger print dialog after content loads
-      printWindow.onload = function() {
-        printWindow.document.title = filename;
-      };
-    } else {
-      // If popup is blocked, provide direct download link
-      customToast.error("Pop-up blocked. Please allow pop-ups for this site to download the PDF.");
-      
-      // Create a temporary link to download the HTML file
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename.replace('.pdf', '.html');
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-    }
   };
 
   if (loading) {
@@ -2689,26 +2324,62 @@ const ScanPage = () => {
                               </p>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2 self-start sm:self-auto">
                           <div className={cn(
-                            "px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium mt-1 sm:mt-0 self-start sm:self-auto",
+                              "px-2 xs:px-3 sm:px-4 py-1 xs:py-1.5 sm:py-2 rounded-full text-[10px] xs:text-xs sm:text-sm font-medium",
                             predictionResult.prediction === 'Normal' 
                               ? "bg-green-100 text-green-800 ring-1 ring-green-600/20" 
                               : "bg-red-100 text-red-800 ring-1 ring-red-600/20"
                           )}>
+                              <span className="flex items-center gap-1">
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  width="12" 
+                                  height="12" 
+                                  viewBox="0 0 24 24" 
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  strokeWidth="2" 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round" 
+                                  className="hidden xs:inline-block"
+                                >
+                                  <path d="M16 22h2a2 2 0 0 0 2-2v-1a1 1 0 0 1 1-1 1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1 1 1 0 0 1-1-1v-1a2 2 0 0 0-2-2h-2"></path>
+                                  <path d="M8 22H6a2 2 0 0 1-2-2v-1a1 1 0 0 0-1-1 1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1 1 1 0 0 0 1-1v-1a2 2 0 0 1 2-2h2"></path>
+                                  <path d="M18 5V3c0-.6-.4-1-1-1h-4c-.6 0-1 .4-1 1v2c0 .6.4 1 1 1h4c.6 0 1-.4 1-1Z"></path>
+                                  <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path>
+                                  <path d="M12 12v1"></path>
+                                  <path d="M12 9v1"></path>
+                                </svg>
                             {(() => {
                               // Safe string conversion
                               const confidenceValue = predictionResult.confidence;
                               if (typeof confidenceValue === 'number') {
-                                return `${confidenceValue > 1 ? confidenceValue.toFixed(1) : (confidenceValue * 100).toFixed(1)}% Confidence`;
+                                    return `${confidenceValue > 1 ? confidenceValue.toFixed(1) : (confidenceValue * 100).toFixed(1)}%`;
                               }
-                              return `${String(confidenceValue)}% Confidence`;
+                                  return `${String(confidenceValue)}%`;
                             })()}
+                              </span>
+                            </div>
+                            {/* Download PDF Button */}
+                            <button
+                              onClick={handleDownloadPDF}
+                              className={cn(
+                                "p-1 xs:p-1.5 sm:p-2 rounded-full transition-all duration-300 flex items-center justify-center",
+                                predictionResult.prediction === 'Normal' 
+                                  ? "bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 ring-1 ring-green-600/20" 
+                                  : "bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 ring-1 ring-red-600/20"
+                              )}
+                              title="Download as PDF"
+                            >
+                              <Download className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
+                            </button>
                           </div>
                         </div>
 
                         {/* Detailed Report Section - Updated for better responsive design */}
                         <div className="mt-4 sm:mt-6 grid gap-3 sm:gap-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5 justify-items-center lg:mx-[100px]">
                             <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
                               <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Scan Details</h4>
                               <div className="space-y-2 sm:space-y-3">
@@ -2779,7 +2450,9 @@ const ScanPage = () => {
 
                           {/* Recommendations Section */}
                           <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-                            <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Recommendations</h4>
+                            <div className="flex items-start justify-between mb-2 sm:mb-3">
+                              <h4 className="text-xs sm:text-sm font-medium text-gray-700">Recommendations</h4>
+                            </div>
                             {predictionResult?.prediction === 'Normal' ? (
                               <p className="text-xs sm:text-sm text-gray-600">
                                 Your scan appears normal. However, if you experience any symptoms or concerns, 
@@ -2797,12 +2470,12 @@ const ScanPage = () => {
                                 </ul>
                                 <Button
                                   onClick={() => navigate('/consultation')}
-                                  className="mt-1 sm:mt-2 relative group overflow-hidden bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-300 text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg"
+                                  className="mt-1 sm:mt-2 relative group overflow-hidden bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-300 text-xs sm:text-sm px-3 sm:px-6 py-1.5 sm:py-2.5 rounded-lg w-full sm:w-auto"
                                 >
-                                  <span className="relative z-10 flex items-center gap-2">
+                                  <span className="relative z-10 flex items-center justify-center gap-2">
                                     Schedule Consultation
                                     <svg 
-                                      className="h-3.5 w-3.5 sm:h-4 sm:w-4 transform transition-all duration-300 group-hover:translate-x-1" 
+                                      className="h-3 w-3 sm:h-4 sm:w-4 transform transition-all duration-300 group-hover:translate-x-1" 
                                       xmlns="http://www.w3.org/2000/svg" 
                                       width="24" 
                                       height="24" 
@@ -2835,9 +2508,27 @@ const ScanPage = () => {
                         <p className="text-sm text-gray-600 mt-2">Please wait while we retrieve your X-ray images</p>
                       </div>
                     </div>
+                  ) : userXRayError ? (
+                    // Error loading X-rays
+                    <div className="w-full max-w-2xl mx-auto bg-white/90 backdrop-blur-sm rounded-xl border border-red-200/50 shadow-sm p-8 text-center">
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <div className="bg-red-100 p-3 rounded-full mb-4">
+                          <XCircle className="h-10 w-10 text-red-500" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900">Error Loading X-rays</h3>
+                        <p className="text-sm text-red-600 mt-2">{userXRayError}</p>
+                        <Button 
+                          onClick={refreshData}
+                          className="mt-6 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-4 py-2 rounded-lg shadow-sm flex items-center gap-2"
+                        >
+                          <RefreshCw size={16} />
+                          <span>Try Again</span>
+                        </Button>
+                      </div>
+                    </div>
                   ) : userXRays.length > 0 ? (
                     // When user HAS scan results
-                    <div className="w-full max-w-2xl mx-auto">
+                    <div className="w-full max-w-md sm:max-w-lg md:max-w-3xl lg:max-w-7xl mx-auto">
                       {/* X-ray API Images Section */}
                       <div className="mt-6 sm:mt-8 mb-8 sm:mb-12">
                         <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -2873,27 +2564,29 @@ const ScanPage = () => {
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 justify-items-center mx-4 sm:mx-6 md:mx-10 lg:mx-[100px]">
                           {userXRays
                             .slice(
                               (currentXRayPage - 1) * xRayImagesPerPage,
                               currentXRayPage * xRayImagesPerPage
                             )
                             .map((xray, index) => (
-                              <div className="flex justify-center" key={`container-${xray.id}`}>
+                              <div 
+                                key={`container-${xray.id}`}
+                                className="flex justify-center" 
+                              >
                                 <div 
                                   key={xray.uniqueKey || `xray-${xray.id}-${Date.now()}`} 
-                                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200/70 flex flex-col h-[320px] w-full max-w-[360px] animate-in fade-in-50 slide-in-from-bottom-5 duration-500 transform hover:-translate-y-1 active:translate-y-0 relative group card-container"
+                                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200/70 flex flex-col h-auto w-full animate-in fade-in-50 slide-in-from-bottom-5 duration-500 transform hover:-translate-y-1 active:translate-y-0 relative group card-container quick-scan-card"
                                   style={{ animationDelay: `${index * 150}ms` }}
                                 >
                                   {/* X-ray Image Section */}
-                                  <div className="relative w-full pt-[56.25%]">
+                                  <div className="relative w-full pt-[50%] border-b border-gray-100">
                                     {xray.image ? (
                                       <>
                                         <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-                                          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-cyan-50/50 to-white">
-                                            <div className="flex flex-col items-center gap-3">
-                                              {/* Removing the X-ray ID section */}
+                                          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-cyan-50/50 to-white rounded-lg overflow-hidden">
+                                            <div className="flex flex-col items-center gap-4">
                                               
                                               <Button
                                                 onClick={() => openImageDialog(xray.id, xray.image)}
@@ -2905,7 +2598,7 @@ const ScanPage = () => {
                                                 </div>
                                               </Button>
 
-                                              <div className="flex items-center gap-1.5 bg-gradient-to-r from-blue-500/80 to-cyan-500/80 hover:from-blue-600/80 hover:to-cyan-600/80 text-white shadow-sm hover:shadow-md text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 transform hover:scale-105">
+                                              <div className="flex items-center gap-1.5 bg-gradient-to-r from-blue-500/80 to-cyan-500/80 hover:from-blue-600/80 hover:to-cyan-600/80 text-white shadow-sm hover:shadow-md text-xs font-medium px-3.5 py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 transform hover:scale-105">
                                                 <svg 
                                                   xmlns="http://www.w3.org/2000/svg" 
                                                   width="12" 
@@ -2937,30 +2630,34 @@ const ScanPage = () => {
                                         </svg>
                                       </div>
                                     )}
-                                    
-                                    {/* Removing the overlay effect */}
-                                    
-                                    {/* Remove the ID Badge from top-right since we moved it below the button */}
                                   </div>
 
                                   {/* Content Section */}
-                                  <div className="flex-1 flex flex-col p-5 justify-between">
+                                  <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 justify-between">
                                     {/* Top section with date and type */}
-                                    <div className="space-y-3">
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-xs font-medium text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full">
-                                            X-ray
-                                          </span>
+                                    <div className="space-y-3 sm:space-y-4">
+                                      {/* ScanID Section */}
+                                      <div className="flex items-center gap-2.5">
+                                        <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+                                          <span className="text-gray-500 mr-1.5">ScanID:</span> {xray.id}
+                                        </h3>
                                         </div>
-                                        <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                                          {format(new Date(xray.upload_date), "MMM d, yyyy")}
+                                      
+                                      {/* Timestamp section */}
+                                      <div className="flex items-center gap-2 text-gray-500 text-xs sm:text-sm">
+                                        <span className="inline-flex h-4 w-4 text-cyan-500">
+                                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                          </svg>
                                         </span>
+                                        <span className="hidden sm:inline">{format(new Date(xray.upload_date), "MMMM d, yyyy 'at' h:mm a")}</span>
+                                        <span className="inline sm:hidden">{format(new Date(xray.upload_date), "MMM d, yyyy")}</span>
                                       </div>
                                       
                                       {/* Doctor/Assistant info */}
                                       {xray.assistant?.first_name && (
-                                        <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                                        <p className="text-xs text-gray-500 flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-lg w-fit">
                                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
                                             <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                                             <circle cx="9" cy="7" r="4"></circle>
@@ -2969,9 +2666,9 @@ const ScanPage = () => {
                                         </p>
                                       )}
                                       
-                                      {/* New attention-grabbing Notes button */}
+                                      {/* Notes button */}
                                       {xray.notes && (
-                                        <div className="flex justify-start">
+                                        <div className="flex justify-start mt-1">
                                           <Dialog>
                                             <DialogTrigger asChild>
                                               <Button
@@ -2997,6 +2694,7 @@ const ScanPage = () => {
                                                 </span>
                                               </Button>
                                             </DialogTrigger>
+                                            
                                             <DialogContent className="sm:max-w-md">
                                               <DialogHeader>
                                                 <DialogTitle className="flex items-center gap-2 text-cyan-600">
@@ -3025,12 +2723,29 @@ const ScanPage = () => {
                                     </div>
                                     
                                     {/* Action button at the bottom */}
+                                    <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 mt-4 sm:mt-5 justify-center">
+                                      {xray.result && xray.result.toLowerCase() !== 'normal' && (
+                                        <Button
+                                          onClick={() => navigate('/consultation')}
+                                          className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 border border-transparent hover:border-red-300 hover:border-2 shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0"
+                                        >
+                                          <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="consult-icon text-white transition-colors duration-300">
+                                              <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
+                                              <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
+                                            </svg>
+                                            Consult Doctor
+                                          </span>
+                                        </Button>
+                                      )}
+
                                     <Button 
                                       onClick={() => analyzeUserXRay(xray.id.toString())}
-                                      className="w-full relative hover-button overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-md transition-all duration-300 text-sm py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 font-medium border border-transparent hover:border-cyan-300 mt-4"
+                                        className="download-btn relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm py-1.5 px-3 sm:py-2 sm:px-4 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2"
+                                        title="Quick scan analysis"
                                       disabled={analyzingXRay && selectedXRay?.id === xray.id}
                                     >
-                                      <span className="relative z-10 flex items-center justify-center gap-2">
+                                        <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
                                         {analyzingXRay && selectedXRay?.id === xray.id ? (
                                           <>
                                             <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -3065,8 +2780,8 @@ const ScanPage = () => {
                                           </>
                                         )}
                                       </span>
-                                      <span className="absolute inset-0 h-full w-full scale-0 rounded-lg bg-white/20 transition-all duration-300 group-hover:scale-100"></span>
                                     </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -3184,33 +2899,33 @@ const ScanPage = () => {
 
             <TabsContent value="history" className="p-4 sm:p-6 md:p-8">
               <div className="space-y-4 sm:space-y-6">
-                <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:justify-between sm:items-center bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200/60">
+                <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 lg:gap-6 sm:flex-row sm:justify-between sm:items-center bg-white rounded-xl p-3 sm:p-4 md:p-6 lg:p-8 shadow-sm md:shadow-md border border-gray-200/60 lg:border-gray-200/80">
                   <div className="flex flex-col">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
-                      <span className="bg-cyan-50 p-1 sm:p-1.5 rounded-md inline-flex items-center justify-center">
-                        <History className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-cyan-600" />
+                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2 md:gap-3">
+                      <span className="bg-cyan-50 p-1 sm:p-1.5 md:p-2 lg:p-2.5 rounded-md inline-flex items-center justify-center">
+                        <History className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-cyan-600" />
                       </span>
                       <span>Scan History</span>
                     </h2>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <p className="mt-0.5 sm:mt-1 md:mt-2 text-xs sm:text-sm md:text-base text-gray-500 md:max-w-md lg:max-w-lg">
                       View and manage your previous scan analyses
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 self-start sm:self-auto w-full sm:w-auto mt-2 sm:mt-0">
+                  <div className="flex items-center gap-2 md:gap-3 lg:gap-4 self-start sm:self-auto w-full sm:w-auto mt-2 sm:mt-0">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="flex items-center gap-1 bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all text-[10px] xs:text-xs w-full sm:w-auto justify-between sm:justify-start h-7 sm:h-8 px-2 sm:px-2.5 py-0.5 sm:py-1">
+                        <Button variant="outline" className="flex items-center gap-1 bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all text-[10px] xs:text-xs sm:text-sm lg:text-base w-full sm:w-auto justify-between sm:justify-start h-7 sm:h-8 md:h-9 lg:h-10 px-2 sm:px-2.5 md:px-3 lg:px-4 py-0.5 sm:py-1 md:py-1.5">
                           {sortOption === 'newest' || sortOption === 'oldest' 
-                            ? <History className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-cyan-500 flex-shrink-0" /> 
-                            : <FilterX className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-cyan-500 flex-shrink-0" />}
-                          <span className="text-gray-600 hidden xs:inline text-[10px] xs:text-xs">Sort by: </span>
-                          <span className="font-medium text-cyan-600 truncate text-[10px] xs:text-xs">
+                            ? <History className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 text-cyan-500 flex-shrink-0" /> 
+                            : <FilterX className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 text-cyan-500 flex-shrink-0" />}
+                          <span className="text-gray-600 hidden xs:inline text-[10px] xs:text-xs sm:text-sm">Sort by: </span>
+                          <span className="font-medium text-cyan-600 truncate text-[10px] xs:text-xs sm:text-sm">
                             {sortOption === 'newest' && 'Newest first'}
                             {sortOption === 'oldest' && 'Oldest first'}
                             {sortOption === 'highest-id' && 'ID (high to low)'}
                             {sortOption === 'lowest-id' && 'ID (low to high)'}
                           </span>
-                          <SortDesc className="h-2 w-2 sm:h-2.5 sm:w-2.5 ml-0.5 sm:ml-1 text-gray-400 flex-shrink-0" />
+                          <SortDesc className="h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 ml-0.5 sm:ml-1 md:ml-1.5 text-gray-400 flex-shrink-0" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40 sm:w-48 shadow-lg border border-gray-200 rounded-lg p-1 animate-in fade-in-80 zoom-in-95">
@@ -3249,15 +2964,15 @@ const ScanPage = () => {
                     </DropdownMenu>
                     <Button 
                       onClick={() => navigateToTab('quickscan')}
-                      className={cn(chopperButton, "min-w-0 w-full sm:w-auto h-7 sm:h-8 text-[10px] xs:text-xs")}
+                      className={cn(chopperButton, "min-w-0 w-full sm:w-auto h-7 sm:h-8 md:h-9 lg:h-10 text-[10px] xs:text-xs sm:text-sm lg:text-base px-2 sm:px-3 md:px-4 lg:px-5")}
                     >
-                      <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                      <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 mr-1 sm:mr-1.5 md:mr-2 flex-shrink-0" />
                       <span className="truncate">New Scan</span>
                     </Button>
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:gap-6">
+                <div className="grid gap-3 sm:gap-6 grid-cols-1 scan-history-grid">
                   {getCurrentPageScans().map((scan, index) => {
                     const isNormal = scan.result?.toLowerCase() === 'normal';
                     const confidence = scan.confidence_score ? (scan.confidence_score * 100).toFixed(1) : null;
@@ -3265,128 +2980,91 @@ const ScanPage = () => {
                     return (
                     <Card 
                       key={scan.id} 
-                      className="overflow-hidden group hover:shadow-xl transition-all duration-300 bg-white/95 backdrop-blur-sm border border-gray-200/50 relative hover:border-cyan-200 hover:-translate-y-1 active:translate-y-0 rounded-xl"
+                      className="flex flex-col gap-2 sm:gap-3 md:gap-4 lg:gap-5 bg-white rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm md:shadow-md border border-gray-200/60 lg:border-gray-200/80 w-full hover:shadow-xl transition-all duration-300 relative hover:border-cyan-200 hover:-translate-y-1 active:translate-y-0 scan-history-card"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       {/* Status indicator strip */}
                       <div className={cn(
-                        "absolute top-0 left-0 w-1 sm:w-1.5 h-full group-hover:w-1.5 sm:group-hover:w-2 transition-all duration-300", 
+                        "absolute top-0 left-0 w-1 sm:w-1.5 h-full", 
                         isNormal ? "bg-green-500" : "bg-red-500"
                       )} />
                       
-                      <CardContent className="p-0">
-                        <div className="pl-3 sm:pl-5 pr-3 sm:pr-5 py-3 sm:py-5 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5 md:gap-7 relative">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-5">
                           {/* Scan Image Preview */}
-                          <div className="flex-shrink-0 w-full sm:w-24 md:w-32 h-24 sm:h-24 md:h-32 relative rounded-lg sm:rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 shadow-md border border-gray-200/70 group-hover:shadow-lg transition-all duration-300">
+                        <div className="flex-shrink-0 h-20 w-20 xs:h-24 xs:w-24 md:h-28 md:w-28 relative rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 shadow-md border border-gray-200/70 hover:shadow-lg transition-all duration-300 self-center sm:self-start">
                             {scan.image ? (
                               <img 
                                 src={scan.image} 
                                 alt={`Scan ${scan.id}`}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 group-hover:text-cyan-400 transition-colors duration-300" />
+                              <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 hover:text-cyan-400 transition-colors duration-300" />
                               </div>
                             )}
                           </div>
 
                           {/* Scan Details */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-start justify-between mb-2 sm:mb-4 gap-1.5 sm:gap-2">
-                              <div>
-                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                  <h3 className="text-xs sm:text-sm md:text-base font-semibold text-gray-900 group-hover:text-cyan-700 transition-colors duration-300">
-                                    <span className="text-gray-500 group-hover:text-gray-400 transition-colors duration-300">ScanID:</span> {scan.id}
+                              {/* Header Section with ScanID and Status Badge */}
+                              <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-0">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+                                    <span className="text-gray-500">ScanID:</span> {scan.id}
                                   </h3>
-                                  <Badge className={cn(
-                                    "px-1.5 sm:px-2 sm:px-2.5 py-0.5 text-[10px] xs:text-xs font-medium transition-all duration-300 group-hover:shadow-sm", 
-                                    getStatusColor(scan.result),
-                                    scan.result?.toLowerCase() === 'completed' && "group-hover:bg-green-200",
-                                    scan.result?.toLowerCase() === 'processing' && "group-hover:bg-yellow-200",
-                                    scan.result?.toLowerCase() === 'failed' && "group-hover:bg-red-200"
+                                  <div className={cn(
+                                    "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
+                                    scan.result?.toLowerCase() === 'normal' 
+                                      ? "bg-green-100 text-green-700" 
+                                      : "bg-red-100 text-red-700"
                                   )}>
                                     {scan.result}
-                                  </Badge>
                                 </div>
-                                <p className="text-[10px] xs:text-xs sm:text-xs text-gray-500 mt-1 sm:mt-1.5 flex items-center gap-1 sm:gap-1.5 group-hover:text-gray-600 transition-colors duration-300">
-                                  <span className="inline-block h-3 w-3 sm:h-3.5 sm:w-3.5 text-cyan-500 group-hover:text-cyan-600 transition-colors duration-300">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 sm:h-3.5 sm:w-3.5">
+                                </div>
+                                
+                                {/* Timestamp with icon */}
+                                <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                                  <span className="inline-block h-4 w-4 text-cyan-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                       <circle cx="12" cy="12" r="10"></circle>
                                       <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
                                   </span>
-                                  <span className="hidden xs:inline">{format(new Date(scan.upload_date), "MMMM d, yyyy 'at' h:mm a")}</span>
-                                  <span className="inline xs:hidden">{format(new Date(scan.upload_date), "MMM d, yyyy")}</span>
-                                </p>
-                              </div>
-                              
-                              {/* Consultation button aligned with Scan ID */}
-                              {!isNormal && scan.result && (
-                                <Button
-                                  onClick={() => navigate('/consultation')}
-                                  className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 border border-transparent hover:border-red-300 shadow-sm hover:shadow-md transition-all duration-300 text-[10px] xs:text-xs font-medium px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full hover:-translate-y-0.5 active:translate-y-0 mt-0 sm:mt-0.5"
-                                >
-                                  <span className="relative z-10 flex items-center gap-1 sm:gap-1.5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="consult-icon text-white transition-colors duration-300">
-                                      <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
-                                      <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
-                                    </svg>
-                                    Consult Doctor
-                                  </span>
-                                </Button>
-                              )}
-                              
-                              {/* Download PDF Report Button */}
-                              {scan.result && (
-                                <Button
-                                  onClick={() => handleHistoryScanDownloadPDF(scan)}
-                                  className={cn(
-                                    "relative overflow-hidden transition-all duration-300 text-[10px] xs:text-xs font-medium px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full hover:-translate-y-0.5 active:translate-y-0 mt-0 sm:mt-0.5",
-                                    !isNormal && scan.result ? "ml-2" : "",
-                                    isNormal 
-                                      ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-green-500 hover:to-emerald-600 border border-transparent hover:border-green-300" 
-                                      : "bg-gradient-to-r from-blue-500 to-cyan-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-blue-500 hover:to-cyan-600 border border-transparent hover:border-blue-300"
-                                  )}
-                                  title="Download scan report as PDF"
-                                >
-                                  <span className="relative z-10 flex items-center gap-1 sm:gap-1.5">
-                                    <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white transition-colors duration-300" />
-                                    Report
-                                  </span>
-                                </Button>
-                              )}
+                                  <span className="hidden sm:inline">{format(new Date(scan.upload_date), "MMMM d, yyyy")}</span>
+                                  <span className="inline sm:hidden">{format(new Date(scan.upload_date), "MMM d, yyyy")}</span>
+                                </div>
                             </div>
 
                             {/* Result Card */}
                             {scan.result && (
                               <div className={cn(
-                                "mt-2 sm:mt-3 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border transition-all duration-300 group-hover:shadow-md",
+                              "mt-2 sm:mt-3 rounded-lg sm:rounded-xl p-2 sm:p-3 border transition-all duration-300 hover:shadow-md",
                                 isNormal
-                                  ? "bg-gradient-to-br from-green-50/80 to-green-50/50 border-green-200 group-hover:from-green-50/90 group-hover:to-green-50/70 group-hover:border-green-300"
-                                  : "bg-gradient-to-br from-red-50/80 to-red-50/50 border-red-200 group-hover:from-red-50/90 group-hover:to-red-50/70 group-hover:border-red-300"
+                                ? "bg-gradient-to-br from-green-50/80 to-green-50/50 border-green-200 hover:from-green-50/90 hover:to-green-50/70 hover:border-green-300"
+                                : "bg-gradient-to-br from-red-50/80 to-red-50/50 border-red-200 hover:from-red-50/90 hover:to-red-50/70 hover:border-red-300"
                               )}>
-                                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
-                                  <div className="flex items-center gap-1.5 sm:gap-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 sm:gap-2">
                                     {isNormal ? (
                                       <div className="relative">
                                         <CheckCircle className={cn(
-                                          "w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 z-10 relative",
-                                          isNormal ? "text-green-500 group-hover:text-green-600" : "text-red-500 group-hover:text-red-600",
+                                        "w-4 h-4 sm:w-5 sm:h-5 z-10 relative",
+                                        isNormal ? "text-green-500 hover:text-green-600" : "text-red-500 hover:text-red-600",
                                           "transition-colors duration-300"
                                         )} />
-                                        <div className="absolute -inset-1 bg-green-400/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></div>
+                                      <div className="absolute -inset-1 bg-green-400/20 rounded-full scale-0 hover:scale-100 transition-transform duration-300"></div>
                                       </div>
                                     ) : (
                                       <div className="relative">
-                                        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-500 group-hover:text-red-600 transition-colors duration-300 z-10 relative" />
-                                        <div className="absolute -inset-1 bg-red-400/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></div>
+                                      <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 hover:text-red-600 transition-colors duration-300 z-10 relative" />
+                                      <div className="absolute -inset-1 bg-red-400/20 rounded-full scale-0 hover:scale-100 transition-transform duration-300"></div>
                                       </div>
                                     )}
                                     <div>
                                       <p className={cn(
-                                        "font-medium text-xs sm:text-sm md:text-base transition-colors duration-300",
-                                        isNormal ? "text-green-700 group-hover:text-green-800" : "text-red-700 group-hover:text-red-800"
+                                      "font-medium text-xs sm:text-sm transition-colors duration-300",
+                                      isNormal ? "text-green-700 hover:text-green-800" : "text-red-700 hover:text-red-800"
                                       )}>
                                         {isNormal ? "Normal Scan Result" : 
                                          scan.result === "Pneumonia" ? "Pneumonia Detected" : 
@@ -3394,8 +3072,8 @@ const ScanPage = () => {
                                          "Abnormality Detected"}
                                       </p>
                                       <p className={cn(
-                                        "text-[10px] xs:text-xs mt-0.5 sm:mt-1 transition-colors duration-300",
-                                        isNormal ? "text-green-600 group-hover:text-green-700" : "text-red-600 group-hover:text-red-700"
+                                      "text-[10px] xs:text-xs mt-0.5 transition-colors duration-300",
+                                      isNormal ? "text-green-600 hover:text-green-700" : "text-red-600 hover:text-red-700"
                                       )}>
                                         {isNormal 
                                           ? "No signs of pneumonia were detected in this scan." 
@@ -3409,10 +3087,10 @@ const ScanPage = () => {
                                   </div>
                                   {confidence && (
                                     <Badge className={cn(
-                                      "text-xs px-3 py-1.5 transition-all duration-300 rounded-full flex items-center gap-1.5",
+                                    "text-xs px-2.5 py-1 transition-all duration-300 rounded-full flex items-center gap-1.5",
                                       isNormal 
-                                        ? "bg-green-100 text-green-800 ring-1 ring-green-600/20 group-hover:bg-green-200 group-hover:ring-green-600/30" 
-                                        : "bg-red-100 text-red-800 ring-1 ring-red-600/20 group-hover:bg-red-200 group-hover:ring-red-600/30"
+                                      ? "bg-green-100 text-green-800 ring-1 ring-green-600/20 hover:bg-green-200 hover:ring-green-600/30" 
+                                      : "bg-red-100 text-red-800 ring-1 ring-red-600/20 hover:bg-red-200 hover:ring-red-600/30"
                                     )}>
                                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isNormal ? "text-green-600" : "text-red-600"}>
                                         <path d="m12 14 4-4" />
@@ -3426,22 +3104,65 @@ const ScanPage = () => {
                                 </div>
                               </div>
                             )}
+                          
+                          {/* Action Buttons */}
+                          <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 mt-3 justify-end">
+                            {scan.result && scan.result.toLowerCase() !== 'normal' && (
+                              <Button
+                                onClick={() => navigate('/consultation')}
+                                className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 border border-transparent hover:border-red-300 hover:border-2 shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0"
+                              >
+                                <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="consult-icon text-white transition-colors duration-300">
+                                    <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
+                                    <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
+                                  </svg>
+                                  Consult Doctor
+                                </span>
+                              </Button>
+                            )}
+                            <Button
+                              onClick={() => generatePDFReport(scan)}
+                              className="download-btn relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm py-1.5 px-3 sm:py-2 sm:px-4 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2"
+                              title="Download scan report as PDF"
+                            >
+                              <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
+                                {analyzingXRay && selectedXRay?.id === scan.id ? (
+                                  <>
+                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Processing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white hover-button-icon transition-colors duration-300">
+                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                      <polyline points="7 10 12 15 17 10"></polyline>
+                                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Download Report
+                                  </>
+                                )}
+                              </span>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
 
                             {/* Notes Section */}
                             {scan.notes && (
-                              <div className="mt-3 sm:mt-4 bg-gradient-to-br from-gray-50/90 to-gray-50/60 rounded-xl p-4 border border-gray-200 group-hover:border-gray-300 group-hover:from-gray-50 group-hover:to-gray-50/80 transition-all duration-300 group-hover:shadow-sm">
-                                <div className="flex items-center gap-2 text-gray-700 group-hover:text-gray-800 transition-colors duration-300">
+                        <div className="mt-3 bg-gradient-to-br from-gray-50/90 to-gray-50/60 rounded-xl p-3 sm:p-4 border border-gray-200 hover:border-gray-300 hover:from-gray-50 hover:to-gray-50/80 transition-all duration-300 hover:shadow-sm w-full">
+                          <div className="flex items-center gap-2 text-gray-700 hover:text-gray-800 transition-colors duration-300">
                                   <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                   <span className="text-xs sm:text-sm font-medium">Doctor's Notes</span>
                                 </div>
-                                <p className="mt-2 text-xs sm:text-sm text-gray-600 pl-5 sm:pl-6 group-hover:text-gray-700 transition-colors duration-300 leading-relaxed">
+                          <p className="mt-2 text-xs sm:text-sm text-gray-600 pl-5 sm:pl-6 hover:text-gray-700 transition-colors duration-300 leading-relaxed">
                                   {scan.notes}
                                 </p>
                               </div>
                             )}
-                          </div>
-                        </div>
-                      </CardContent>
                     </Card>
                   );
                 })}
