@@ -2379,7 +2379,7 @@ const ScanPage = () => {
 
                         {/* Detailed Report Section - Updated for better responsive design */}
                         <div className="mt-4 sm:mt-6 grid gap-3 sm:gap-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5 justify-items-center lg:mx-[100px]">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                             <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
                               <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Scan Details</h4>
                               <div className="space-y-2 sm:space-y-3">
@@ -2528,7 +2528,7 @@ const ScanPage = () => {
                     </div>
                   ) : userXRays.length > 0 ? (
                     // When user HAS scan results
-                    <div className="w-full max-w-md sm:max-w-lg md:max-w-3xl lg:max-w-7xl mx-auto">
+                    <div className="w-full max-w-md sm:max-w-lg md:max-w-lg lg:max-w-3xl mx-auto">
                       {/* X-ray API Images Section */}
                       <div className="mt-6 sm:mt-8 mb-8 sm:mb-12">
                         <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -2564,7 +2564,7 @@ const ScanPage = () => {
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 justify-items-center mx-4 sm:mx-6 md:mx-10 lg:mx-[100px]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
                           {userXRays
                             .slice(
                               (currentXRayPage - 1) * xRayImagesPerPage,
@@ -2991,12 +2991,13 @@ const ScanPage = () => {
                       
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-5">
                           {/* Scan Image Preview */}
-                        <div className="flex-shrink-0 h-20 w-20 xs:h-24 xs:w-24 md:h-28 md:w-28 relative rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 shadow-md border border-gray-200/70 hover:shadow-lg transition-all duration-300 self-center sm:self-start">
+                        <div className="flex-shrink-0 h-20 w-20 xs:h-24 xs:w-24 sm:h-24 sm:w-24 md:h-28 md:w-28 relative rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 shadow-md border border-gray-200/70 hover:shadow-lg transition-all duration-300 self-center sm:self-start">
                             {scan.image ? (
                               <img 
                                 src={scan.image} 
                                 alt={`Scan ${scan.id}`}
-                              className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                                onClick={() => scan.image && openImageDialog(scan.id, scan.image)}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
@@ -3006,48 +3007,89 @@ const ScanPage = () => {
                           </div>
 
                           {/* Scan Details */}
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 overflow-hidden">
                               {/* Header Section with ScanID and Status Badge */}
                               <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-0">
-                                <div className="flex items-center gap-2">
-                                  <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">
                                     <span className="text-gray-500">ScanID:</span> {scan.id}
                                   </h3>
                                   <div className={cn(
-                                    "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
+                                    "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap",
                                     scan.result?.toLowerCase() === 'normal' 
                                       ? "bg-green-100 text-green-700" 
                                       : "bg-red-100 text-red-700"
                                   )}>
                                     {scan.result}
+                                  </div>
+                                    {/* Timestamp with icon - moved to the left */}
+                                  <div className="flex items-center gap-1.5 text-gray-500 text-xs whitespace-nowrap">
+                                    <span className="inline-flex h-4 w-4 text-cyan-500 flex-shrink-0">
+                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                      </svg>
+                                    </span>
+                                    <span className="hidden sm:inline">{format(new Date(scan.upload_date), "MMMM d, yyyy")}</span>
+                                    <span className="inline sm:hidden">{format(new Date(scan.upload_date), "MMM d, yyyy")}</span>
+                                  </div>
                                 </div>
-                                </div>
-                                
-                                {/* Timestamp with icon */}
-                                <div className="flex items-center gap-1.5 text-gray-500 text-xs">
-                                  <span className="inline-block h-4 w-4 text-cyan-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <circle cx="12" cy="12" r="10"></circle>
-                                      <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
+                                {/* Action Buttons */}
+                                <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 mt-1 justify-end">
+                                  {scan.result && scan.result.toLowerCase() !== 'normal' && (
+                                  <Button
+                                    onClick={() => navigate('/consultation')}
+                                    className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 border border-transparent hover:border-red-300 hover:border-2 shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-2 xs:px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
+                                  >
+                                    <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="consult-icon text-white transition-colors duration-300 flex-shrink-0">
+                                        <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
+                                        <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
+                                      </svg>
+                                      <span className="truncate">Consult Doctor</span>
+                                    </span>
+                                  </Button>
+                                )}
+                                <Button
+                                  onClick={() => generatePDFReport(scan)}
+                                  className="download-btn relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm py-1.5 px-2 xs:px-3 sm:py-2 sm:px-4 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2 whitespace-nowrap"
+                                  title="Download scan report as PDF"
+                                >
+                                  <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
+                                    {analyzingXRay && selectedXRay?.id === scan.id ? (
+                                      <>
+                                        <svg className="animate-spin h-4 w-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span className="truncate">Processing...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white hover-button-icon transition-colors duration-300 flex-shrink-0">
+                                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                          <polyline points="7 10 12 15 17 10"></polyline>
+                                          <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                        <span className="truncate">Download Report</span>
+                                      </>
+                                    )}
                                   </span>
-                                  <span className="hidden sm:inline">{format(new Date(scan.upload_date), "MMMM d, yyyy")}</span>
-                                  <span className="inline sm:hidden">{format(new Date(scan.upload_date), "MMM d, yyyy")}</span>
-                                </div>
-                            </div>
-
+                                </Button>
+                              </div>
+                              </div>
                             {/* Result Card */}
                             {scan.result && (
                               <div className={cn(
-                              "mt-2 sm:mt-3 rounded-lg sm:rounded-xl p-2 sm:p-3 border transition-all duration-300 hover:shadow-md",
+                              "mt-2 sm:mt-3 rounded-lg sm:rounded-xl p-2 sm:p-3 border transition-all duration-300 hover:shadow-md overflow-hidden",
                                 isNormal
                                 ? "bg-gradient-to-br from-green-50/80 to-green-50/50 border-green-200 hover:from-green-50/90 hover:to-green-50/70 hover:border-green-300"
                                 : "bg-gradient-to-br from-red-50/80 to-red-50/50 border-red-200 hover:from-red-50/90 hover:to-red-50/70 hover:border-red-300"
                               )}>
                               <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
                                     {isNormal ? (
-                                      <div className="relative">
+                                      <div className="relative flex-shrink-0">
                                         <CheckCircle className={cn(
                                         "w-4 h-4 sm:w-5 sm:h-5 z-10 relative",
                                         isNormal ? "text-green-500 hover:text-green-600" : "text-red-500 hover:text-red-600",
@@ -3056,14 +3098,14 @@ const ScanPage = () => {
                                       <div className="absolute -inset-1 bg-green-400/20 rounded-full scale-0 hover:scale-100 transition-transform duration-300"></div>
                                       </div>
                                     ) : (
-                                      <div className="relative">
+                                      <div className="relative flex-shrink-0">
                                       <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 hover:text-red-600 transition-colors duration-300 z-10 relative" />
                                       <div className="absolute -inset-1 bg-red-400/20 rounded-full scale-0 hover:scale-100 transition-transform duration-300"></div>
                                       </div>
                                     )}
-                                    <div>
+                                    <div className="min-w-0 flex-1 overflow-hidden">
                                       <p className={cn(
-                                      "font-medium text-xs sm:text-sm transition-colors duration-300",
+                                      "font-medium text-xs sm:text-sm transition-colors duration-300 whitespace-nowrap overflow-hidden text-ellipsis",
                                       isNormal ? "text-green-700 hover:text-green-800" : "text-red-700 hover:text-red-800"
                                       )}>
                                         {isNormal ? "Normal Scan Result" : 
@@ -3072,7 +3114,7 @@ const ScanPage = () => {
                                          "Abnormality Detected"}
                                       </p>
                                       <p className={cn(
-                                      "text-[10px] xs:text-xs mt-0.5 transition-colors duration-300",
+                                      "text-[10px] xs:text-xs mt-0.5 transition-colors duration-300 overflow-hidden text-ellipsis",
                                       isNormal ? "text-green-600 hover:text-green-700" : "text-red-600 hover:text-red-700"
                                       )}>
                                         {isNormal 
@@ -3087,7 +3129,7 @@ const ScanPage = () => {
                                   </div>
                                   {confidence && (
                                     <Badge className={cn(
-                                    "text-xs px-2.5 py-1 transition-all duration-300 rounded-full flex items-center gap-1.5",
+                                    "text-xs px-2.5 py-1 transition-all duration-300 rounded-full flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap",
                                       isNormal 
                                       ? "bg-green-100 text-green-800 ring-1 ring-green-600/20 hover:bg-green-200 hover:ring-green-600/30" 
                                       : "bg-red-100 text-red-800 ring-1 ring-red-600/20 hover:bg-red-200 hover:ring-red-600/30"
@@ -3105,49 +3147,6 @@ const ScanPage = () => {
                               </div>
                             )}
                           
-                          {/* Action Buttons */}
-                          <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 mt-3 justify-end">
-                            {scan.result && scan.result.toLowerCase() !== 'normal' && (
-                              <Button
-                                onClick={() => navigate('/consultation')}
-                                className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 border border-transparent hover:border-red-300 hover:border-2 shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0"
-                              >
-                                <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="consult-icon text-white transition-colors duration-300">
-                                    <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
-                                    <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
-                                  </svg>
-                                  Consult Doctor
-                                </span>
-                              </Button>
-                            )}
-                            <Button
-                              onClick={() => generatePDFReport(scan)}
-                              className="download-btn relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm py-1.5 px-3 sm:py-2 sm:px-4 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2"
-                              title="Download scan report as PDF"
-                            >
-                              <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
-                                {analyzingXRay && selectedXRay?.id === scan.id ? (
-                                  <>
-                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Processing...
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white hover-button-icon transition-colors duration-300">
-                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                      <polyline points="7 10 12 15 17 10"></polyline>
-                                      <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
-                                    Download Report
-                                  </>
-                                )}
-                              </span>
-                            </Button>
-                          </div>
                         </div>
                       </div>
 
