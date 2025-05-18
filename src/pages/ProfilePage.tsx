@@ -599,22 +599,40 @@ const ProfilePage = () => {
     try {
       if (!dateString) return 'No time available';
       
-      // Parse the date string into a Date object
-      const date = new Date(dateString);
+      // Extract time directly from ISO string to avoid all timezone conversions
+      // Pattern: Extract the time part (HH:MM) from the ISO string "YYYY-MM-DDTHH:MM:SS.sssZ"
+      const timeMatch = dateString.match(/T(\d{2}):(\d{2}):/);
+      if (timeMatch) {
+        const hours = parseInt(timeMatch[1]);
+        const minutes = timeMatch[2];
+        
+        // Convert to 12-hour format with AM/PM
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const hours12 = hours % 12 || 12;
+        return `${hours12}:${minutes} ${period}`;
+      }
       
-      // Validate the date
+      // Fallback: If not an ISO string or pattern doesn't match
+      const date = new Date(dateString);
       if (isNaN(date.getTime())) {
         console.warn('Invalid date format:', dateString);
         return 'Invalid time format';
       }
       
-      // Extract time components without timezone conversion
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
+      // Get original ISO string from the date
+      const isoString = date.toISOString();
+      const timeMatch2 = isoString.match(/T(\d{2}):(\d{2}):/);
+      if (timeMatch2) {
+        const hours = parseInt(timeMatch2[1]);
+        const minutes = timeMatch2[2];
+        
+        // Convert to 12-hour format with AM/PM
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const hours12 = hours % 12 || 12;
+        return `${hours12}:${minutes} ${period}`;
+      }
       
-      // Convert to 12-hour format using timeUtils for consistency
-      const time24 = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      return timeUtils.to12Hour(time24);
+      return 'Time unavailable';
     } catch (error) {
       console.error('Error formatting time:', error);
       return 'Time unavailable';
@@ -918,16 +936,18 @@ const ProfilePage = () => {
       
       console.log('Updating appointment with ISO string:', isoString);
       
-      // Update the appointment using the appointmentService but keep status as 'confirmed'
-      await appointmentService.updateAppointment(parseInt(selectedAppointmentId), {
-        date_time: isoString,
-        status: 'confirmed'
-      });
+      // Update the appointment using reschedule endpoint instead
+      // This avoids permission issues with status changes
+      await appointmentService.rescheduleAppointment(
+        parseInt(selectedAppointmentId),
+        format(selectedDate, "yyyy-MM-dd"),
+        selectedTime
+      );
       
       // Update local state after successful API call
       const updatedAppointments = appointments.map(apt => 
         apt.id === selectedAppointmentId 
-          ? { ...apt, status: 'confirmed', date_time: isoString }
+          ? { ...apt, date_time: isoString }
           : apt
       ).sort((a, b) => new Date(b.date_time).getTime() - new Date(a.date_time).getTime());
       
@@ -1608,7 +1628,7 @@ const ProfilePage = () => {
                           You don't have any appointments scheduled yet.
                         </p>
                         <Button
-                          onClick={() => navigate('/appointments/new')}
+                          onClick={() => navigate('/appointment')}
                           className="gap-1 sm:gap-2 px-4 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm"
                         >
                           <Plus className="h-3 w-3 sm:h-4 sm:w-4" />

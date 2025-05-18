@@ -37,6 +37,16 @@ const formatAppointmentDate = (dateTimeStr: string, formatPattern: string): stri
 // Helper function to get time in 24-hour format from a date string
 const getTimeFrom24Hour = (dateTimeStr: string): string => {
   try {
+    // Extract time directly from ISO string to avoid timezone conversions
+    // Pattern: Extract the time part (HH:MM) from the ISO string "YYYY-MM-DDTHH:MM:SS.sssZ"
+    const timeMatch = dateTimeStr.match(/T(\d{2}):(\d{2}):/);
+    if (timeMatch) {
+      const hours = timeMatch[1];
+      const minutes = timeMatch[2];
+      return `${hours}:${minutes}`;
+    }
+    
+    // Fallback to the previous method if not an ISO string
     const date = new Date(dateTimeStr);
     if (!isNaN(date.getTime())) {
       return format(date, 'HH:mm');
@@ -51,6 +61,20 @@ const getTimeFrom24Hour = (dateTimeStr: string): string => {
 // Helper function to display time in 12-hour format
 const formatTime12Hour = (dateTimeStr: string): string => {
   try {
+    // Extract time directly from ISO string to avoid timezone conversions
+    // Pattern: Extract the time part (HH:MM) from the ISO string "YYYY-MM-DDTHH:MM:SS.sssZ"
+    const timeMatch = dateTimeStr.match(/T(\d{2}):(\d{2}):/);
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1]);
+      const minutes = timeMatch[2];
+      
+      // Convert to 12-hour format with AM/PM
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const hours12 = hours % 12 || 12;
+      return `${hours12}:${minutes} ${period}`;
+    }
+    
+    // Fallback to the previous method if not an ISO string
     const date = new Date(dateTimeStr);
     if (!isNaN(date.getTime())) {
       return format(date, 'h:mm a');

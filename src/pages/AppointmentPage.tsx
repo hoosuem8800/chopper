@@ -560,22 +560,29 @@ const AppointmentPage = () => {
                           key={time}
                           type="button"
                             className={cn(
-                            "relative p-3 rounded-lg text-sm border transition-all duration-200 font-medium",
+                            "relative p-3 rounded-lg text-sm border transition-all duration-300 font-medium",
                             isSlotAvailable(time) 
                               ? selectedTimeSlot === time 
                                 ? "border-primary bg-primary text-white shadow-md" 
-                                : "border-gray-200 hover:border-primary/50"
-                              : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : "border-gray-200 hover:border-primary hover:shadow-sm"
+                              : "border-red-300 bg-red-50 text-gray-600 cursor-not-allowed overflow-hidden"
                           )}
                           onClick={() => handleTimeSlotSelection(time)}
                           disabled={!isSlotAvailable(time)}
                         >
                               {time}
                           {!isSlotAvailable(time) && (
-                            <Lock className="absolute top-1 right-1 h-3 w-3 text-gray-400" />
+                            <>
+                              <div className="absolute inset-0 bg-red-50/80 backdrop-blur-[1px] rounded-lg border border-red-300 flex items-center justify-center z-10">
+                                <Lock className="h-5 w-5 text-red-500" />
+                              </div>
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-[120%] h-[2px] bg-red-400 absolute rotate-45"></div>
+                              </div>
+                            </>
                           )}
                             {selectedTimeSlot === time && (
-                            <Check className="absolute top-1 right-1 h-3 w-3 text-white" />
+                            <Check className="absolute top-1 right-1 h-4 w-4 text-white" />
                             )}
                         </button>
                       ))}

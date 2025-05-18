@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Upload, History, AlertCircle, FileText, CheckCircle, Loader2, Cloud, ArrowLeft, PartyPopper, FilterX, SortDesc, SortAsc, Lock, Zap, FileX, CalendarPlus, Folder, X, ArrowRight, Download, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Upload, History, AlertCircle, FileText, CheckCircle, Loader2, Cloud, ArrowLeft, PartyPopper, FilterX, SortDesc, SortAsc, Lock, Zap, FileX, CalendarPlus, Folder, X, ArrowRight, Download, XCircle, RefreshCw, AlertTriangle, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, appointmentService, scanService, xrayService } from '@/services/api';
 import { format } from 'date-fns';
@@ -1597,12 +1597,12 @@ const ScanPage = () => {
                                 </ul>
                                 <Button
                                   onClick={() => navigate('/consultation')}
-                                  className="mt-1 sm:mt-2 relative group overflow-hidden bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-300 text-xs sm:text-sm px-3 sm:px-6 py-1.5 sm:py-2.5 rounded-lg w-full sm:w-auto"
+                                  className="mt-1 sm:mt-2 download-btn relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm px-3 sm:px-6 py-1.5 sm:py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2"
                                 >
                                   <span className="relative z-10 flex items-center justify-center gap-2">
                                     Schedule Consultation
                                     <svg 
-                                      className="h-3 w-3 sm:h-4 sm:w-4 transform transition-all duration-300 group-hover:translate-x-1" 
+                                      className="h-4 w-4 transform transition-all duration-300 hover-button-icon" 
                                       xmlns="http://www.w3.org/2000/svg" 
                                       width="24" 
                                       height="24" 
@@ -2470,12 +2470,12 @@ const ScanPage = () => {
                                 </ul>
                                 <Button
                                   onClick={() => navigate('/consultation')}
-                                  className="mt-1 sm:mt-2 relative group overflow-hidden bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-300 text-xs sm:text-sm px-3 sm:px-6 py-1.5 sm:py-2.5 rounded-lg w-full sm:w-auto"
+                                  className="mt-1 sm:mt-2 download-btn relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm px-3 sm:px-6 py-1.5 sm:py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2"
                                 >
                                   <span className="relative z-10 flex items-center justify-center gap-2">
                                     Schedule Consultation
                                     <svg 
-                                      className="h-3 w-3 sm:h-4 sm:w-4 transform transition-all duration-300 group-hover:translate-x-1" 
+                                      className="h-4 w-4 transform transition-all duration-300 hover-button-icon" 
                                       xmlns="http://www.w3.org/2000/svg" 
                                       width="24" 
                                       height="24" 
@@ -2510,19 +2510,35 @@ const ScanPage = () => {
                     </div>
                   ) : userXRayError ? (
                     // Error loading X-rays
-                    <div className="w-full max-w-2xl mx-auto bg-white/90 backdrop-blur-sm rounded-xl border border-red-200/50 shadow-sm p-8 text-center">
+                    <div className="w-full max-w-2xl mx-auto bg-white/90 backdrop-blur-sm rounded-xl border border-cyan-200/50 shadow-sm p-8 text-center">
                       <div className="flex flex-col items-center justify-center py-8">
-                        <div className="bg-red-100 p-3 rounded-full mb-4">
-                          <XCircle className="h-10 w-10 text-red-500" />
+                        <div className="bg-cyan-100 p-3 rounded-full mb-4">
+                          <Calendar className="h-10 w-10 text-cyan-500" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900">Error Loading X-rays</h3>
-                        <p className="text-sm text-red-600 mt-2">{userXRayError}</p>
+                        <h3 className="text-lg font-medium text-gray-900">No X-rays Found</h3>
+                        <p className="text-sm text-gray-600 mt-2">You don't have any X-ray images yet. Schedule an appointment to get started.</p>
                         <Button 
-                          onClick={refreshData}
-                          className="mt-6 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-4 py-2 rounded-lg shadow-sm flex items-center gap-2"
+                          onClick={() => navigate('/appointment')}
+                          className="mt-6 download-btn relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm px-4 py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2"
                         >
-                          <RefreshCw size={16} />
-                          <span>Try Again</span>
+                          <span className="relative z-10 flex items-center justify-center gap-2">
+                            <Calendar size={16} className="text-white hover-button-icon transition-colors duration-300" />
+                            <span>Schedule Appointment</span>
+                            <svg 
+                              className="h-4 w-4 transform transition-all duration-300 hover-button-icon" 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              width="24" 
+                              height="24" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor"
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                          </span>
                         </Button>
                       </div>
                     </div>
@@ -2727,14 +2743,28 @@ const ScanPage = () => {
                                       {xray.result && xray.result.toLowerCase() !== 'normal' && (
                                         <Button
                                           onClick={() => navigate('/consultation')}
-                                          className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 border border-transparent hover:border-red-300 hover:border-2 shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0"
+                                          className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-2 xs:px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-red-300 hover:border-2 whitespace-nowrap"
                                         >
                                           <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="consult-icon text-white transition-colors duration-300">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white hover-button-icon transition-colors duration-300 flex-shrink-0">
                                               <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
                                               <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
                                             </svg>
-                                            Consult Doctor
+                                            <span>Consult Doctor</span>
+                                            <svg 
+                                              className="h-4 w-4 transform transition-all duration-300 hover-button-icon" 
+                                              xmlns="http://www.w3.org/2000/svg" 
+                                              width="24" 
+                                              height="24" 
+                                              viewBox="0 0 24 24" 
+                                              fill="none" 
+                                              stroke="currentColor"
+                                              strokeWidth="2" 
+                                              strokeLinecap="round" 
+                                              strokeLinejoin="round"
+                                            >
+                                              <polyline points="9 18 15 12 9 6"></polyline>
+                                            </svg>
                                           </span>
                                         </Button>
                                       )}
@@ -2811,9 +2841,9 @@ const ScanPage = () => {
                       <div className="mt-6 flex justify-center space-x-3">
                         <Button
                           onClick={() => navigate('/appointment')}
-                          className="relative group overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-md transition-all duration-300 text-sm px-8 py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 font-medium border border-transparent hover:border-cyan-300"
+                          className="download-btn relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-sm px-8 py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 font-medium border border-transparent hover:border-cyan-300 hover:border-2"
                         >
-                          <span className="relative z-10 flex items-center gap-2">
+                          <span className="relative z-10 flex items-center justify-center gap-2">
                             <svg 
                               xmlns="http://www.w3.org/2000/svg" 
                               width="16" 
@@ -2824,7 +2854,7 @@ const ScanPage = () => {
                               strokeWidth="2" 
                               strokeLinecap="round" 
                               strokeLinejoin="round"
-                              className="text-white group-hover:text-cyan-500 transition-colors duration-300"
+                              className="text-white hover-button-icon transition-colors duration-300"
                             >
                               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                               <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -2838,6 +2868,20 @@ const ScanPage = () => {
                               <path d="M16 18h.01"></path>
                             </svg>
                             Book Appointment
+                            <svg 
+                              className="h-4 w-4 transform transition-all duration-300 hover-button-icon" 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              width="24" 
+                              height="24" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor"
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
                           </span>
                         </Button>
                         <Button
@@ -3039,14 +3083,28 @@ const ScanPage = () => {
                                   {scan.result && scan.result.toLowerCase() !== 'normal' && (
                                   <Button
                                     onClick={() => navigate('/consultation')}
-                                    className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white text-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 border border-transparent hover:border-red-300 hover:border-2 shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-2 xs:px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
+                                    className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-2 xs:px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-red-300 hover:border-2 whitespace-nowrap"
                                   >
                                     <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="consult-icon text-white transition-colors duration-300 flex-shrink-0">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white hover-button-icon transition-colors duration-300 flex-shrink-0">
                                         <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
                                         <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
                                       </svg>
                                       <span className="truncate">Consult Doctor</span>
+                                      <svg 
+                                        className="h-4 w-4 transform transition-all duration-300 hover-button-icon" 
+                                        xmlns="http://www.w3.org/2000/svg" 
+                                        width="24" 
+                                        height="24" 
+                                        viewBox="0 0 24 24" 
+                                        fill="none" 
+                                        stroke="currentColor"
+                                        strokeWidth="2" 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round"
+                                      >
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                      </svg>
                                     </span>
                                   </Button>
                                 )}
