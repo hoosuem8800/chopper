@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactElement } from 'react';
+import React, { useState, useEffect, ReactElement, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL, api } from '@/services/api';
@@ -91,6 +91,7 @@ const ManagementPage: React.FC = (): ReactElement => {
   
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [sortField, setSortField] = useState<string | null>(null);
@@ -970,8 +971,8 @@ const ManagementPage: React.FC = (): ReactElement => {
     let result = [...data];
     
     // Apply search filter
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
+    if (debouncedSearchTerm.trim()) {
+      const term = debouncedSearchTerm.toLowerCase();
       result = result.filter(item => {
         // Search through all string and number properties
         return Object.entries(item).some(([key, value]) => {
@@ -1061,7 +1062,7 @@ const ManagementPage: React.FC = (): ReactElement => {
     setFilteredData(result);
     // Update total pages based on filtered data
     setTotalPages(Math.ceil(result.length / 10));
-  }, [data, searchTerm, filters, sortField, sortDirection]);
+  }, [data, debouncedSearchTerm, filters, sortField, sortDirection]);
   
   // Get filter fields based on the resource
   const getFilterFields = () => {
@@ -1078,10 +1079,21 @@ const ManagementPage: React.FC = (): ReactElement => {
     );
   };
   
+  // Apply debounce to search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      if (searchTerm.trim()) {
+        setPage(1); // Reset to first page when searching
+      }
+    }, 300); // 300ms debounce delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setPage(1); // Reset to first page when searching
   };
   
   // Handle filter change
@@ -1096,6 +1108,7 @@ const ManagementPage: React.FC = (): ReactElement => {
   // Clear all filters
   const clearFilters = () => {
     setSearchTerm('');
+    setDebouncedSearchTerm('');
     setFilters({});
     setSortField(null);
     setSortDirection('asc');
