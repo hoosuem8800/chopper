@@ -563,6 +563,7 @@ const ScanPage = () => {
       // Ensure confidence is a number
       const numericConfidence = typeof confidence === 'string' ? parseFloat(confidence) : confidence;
       
+      // Initial prediction result without image
       setPredictionResult({
         prediction: prediction,
         confidence: numericConfidence,
@@ -584,6 +585,14 @@ const ScanPage = () => {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
         },
+      });
+
+      // Update the prediction result with the complete scan data including the image
+      setPredictionResult({
+        ...scanResponse.data,
+        prediction: prediction,
+        confidence: numericConfidence,
+        classProbs: classProbs
       });
 
       customToast.success('Scan analyzed successfully');
@@ -1608,6 +1617,23 @@ const ScanPage = () => {
               </div>
             )}
 
+            {/* X-ray Image Section */}
+            {predictionResult.image && (
+              <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">X-ray Image</h4>
+                <div className="flex justify-center">
+                  <div className="relative overflow-hidden rounded-lg border border-gray-200 max-h-64">
+                    <img 
+                      src={predictionResult.image} 
+                      alt="X-ray scan" 
+                      className="object-contain max-h-64 w-full"
+                      onClick={() => predictionResult.id && openImageDialog(predictionResult.id, predictionResult.image)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="section recommendations">
             <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
                             <div className="flex items-start justify-between mb-2 sm:mb-3">
@@ -2486,6 +2512,23 @@ const ScanPage = () => {
                                     </span>
                                   </div>
                                 ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* X-ray Image Section */}
+                          {predictionResult.image && (
+                            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+                              <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">X-ray Image</h4>
+                              <div className="flex justify-center">
+                                <div className="relative overflow-hidden rounded-lg border border-gray-200 max-h-64">
+                                  <img 
+                                    src={predictionResult.image} 
+                                    alt="X-ray scan" 
+                                    className="object-contain max-h-64 w-full"
+                                    onClick={() => predictionResult.id && openImageDialog(predictionResult.id, predictionResult.image)}
+                                  />
+                                </div>
                               </div>
                             </div>
                           )}
