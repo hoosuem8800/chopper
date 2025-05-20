@@ -216,7 +216,7 @@
   
   /* Add hover button classes for SVG icon hover effect */
   .hover-button:hover .hover-button-icon {
-    @apply text-cyan-500;
+    color: var(--primary-color);
   }
   
   /* Add new scan line animation */
@@ -932,7 +932,7 @@
 
 /* Custom hover button classes */
 .hover-button:hover .hover-button-icon {
-  color: #00C1D4 !important; /* cyan-500 */
+  color: var(--primary-color);
 }
 
 /* Dark mode for any popovers, menus and dialogs */

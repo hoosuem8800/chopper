@@ -19,20 +19,15 @@ const PremiumConfirmationPage = () => {
         }
       });
 
-      const data = await response.json();
-
       if (response.ok) {
         // Dispatch event to refresh user data
         window.dispatchEvent(new Event('refresh-user'));
         navigate('/welcome-premium');
       } else {
-        console.error('Failed to upgrade subscription:', data.error || 'Unknown error');
-        // Show error message to user
-        alert(data.error || 'Failed to upgrade subscription. Please try again.');
+        console.error('Failed to upgrade subscription');
       }
     } catch (error) {
       console.error('Error upgrading subscription:', error);
-      alert('An error occurred while upgrading your subscription. Please try again.');
     }
   };
 
@@ -69,12 +64,12 @@ const PremiumConfirmationPage = () => {
             <div className="flex flex-col gap-3">
               <Button 
                 onClick={handleConfirmPremium}
-                className="w-full relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-sm px-4 py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2 group"
+                className="premium-button"
               >
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  <Crown className="text-white hover-button-icon transition-colors duration-300" />
+                <span className="premium-button-content">
+                  <Crown />
                   Complete Purchase
-                  <ArrowRight className="h-4 w-4 transform transition-all duration-300 hover-button-icon group-hover:translate-x-1" />
+                  <ArrowRight className="arrow-icon" />
                 </span>
               </Button>
 

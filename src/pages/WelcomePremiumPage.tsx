@@ -153,12 +153,12 @@ const WelcomePremiumPage = () => {
             <div className="flex flex-col sm:flex-row gap-3">
           <Button 
             onClick={() => navigate('/scan')}
-            className="w-full relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-sm px-4 py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2 group"
+            className="premium-button"
           >
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              <Crown className="text-white hover-button-icon transition-colors duration-300" />
-                Start Premium Scan
-              <ArrowRight className="h-4 w-4 transform transition-all duration-300 hover-button-icon group-hover:translate-x-1" />
+            <span className="premium-button-content">
+              <Crown />
+              Start Premium Scan
+              <ArrowRight className="arrow-icon" />
             </span>
           </Button>
           
