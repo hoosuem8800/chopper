@@ -85,6 +85,110 @@
   .btn-outline {
     @apply border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium transition-all;
   }
+
+  /* Premium button styles */
+  .premium-button {
+    @apply w-full relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-sm px-4 py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2;
+  }
+
+  .premium-button .premium-button-content {
+    @apply relative z-10 flex items-center justify-center gap-2;
+  }
+
+  .premium-button svg {
+    color: white;
+    transition: color 0.3s ease;
+  }
+
+  .premium-button:hover svg {
+    color: var(--primary-color);
+  }
+
+  .premium-button .arrow-icon {
+    @apply h-4 w-4 transform transition-all duration-300;
+  }
+
+  .premium-button:hover .arrow-icon {
+    @apply translate-x-1;
+  }
+
+  /* Quick scan button styles */
+  .quick-scan-button {
+    @apply relative overflow-hidden bg-primary text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg;
+    transform: translateZ(0);
+    z-index: 10;
+  }
+
+  .quick-scan-button:hover {
+    @apply bg-primary-hover;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(0, 193, 212, 0.4);
+  }
+
+  /* Opera-specific styles */
+  @media all and (-webkit-min-device-pixel-ratio:0) and (min-resolution:.001dpcm) {
+    .quick-scan-button {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+      box-shadow: 0 8px 20px rgba(0, 193, 212, 0.3);
+    }
+
+    .quick-scan-button:hover {
+      background: linear-gradient(135deg, var(--primary-hover), var(--primary-color));
+      box-shadow: 0 12px 24px rgba(0, 193, 212, 0.4);
+    }
+  }
+
+  /* Chrome and Edge styles */
+  @media screen and (-webkit-min-device-pixel-ratio:0) {
+    .quick-scan-button {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+      box-shadow: 0 8px 20px rgba(0, 193, 212, 0.3);
+    }
+
+    .quick-scan-button:hover {
+      background: linear-gradient(135deg, var(--primary-hover), var(--primary-color));
+      box-shadow: 0 12px 24px rgba(0, 193, 212, 0.4);
+    }
+  }
+
+  /* Consult Doctor button styles */
+  .consult-doctor-button {
+    @apply relative overflow-hidden bg-primary text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg;
+    transform: translateZ(0);
+    z-index: 10;
+  }
+
+  .consult-doctor-button:hover {
+    @apply bg-primary-hover;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(0, 193, 212, 0.4);
+  }
+
+  /* Opera-specific styles for Consult Doctor button */
+  @media all and (-webkit-min-device-pixel-ratio:0) and (min-resolution:.001dpcm) {
+    .consult-doctor-button {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+      box-shadow: 0 8px 20px rgba(0, 193, 212, 0.3);
+    }
+
+    .consult-doctor-button:hover {
+      background: linear-gradient(135deg, var(--primary-hover), var(--primary-color));
+      box-shadow: 0 12px 24px rgba(0, 193, 212, 0.4);
+    }
+  }
+
+  /* Chrome and Edge styles for Consult Doctor button */
+  @media screen and (-webkit-min-device-pixel-ratio:0) {
+    .consult-doctor-button {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+      box-shadow: 0 8px 20px rgba(0, 193, 212, 0.3);
+    }
+
+    .consult-doctor-button:hover {
+      background: linear-gradient(135deg, var(--primary-hover), var(--primary-color));
+      box-shadow: 0 12px 24px rgba(0, 193, 212, 0.4);
+    }
+  }
   
   .card-hover {
     @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
