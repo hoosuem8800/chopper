@@ -51,7 +51,7 @@ const AppointmentManager: React.FC<AppointmentManagerProps> = ({
   );
   const [selectedTime, setSelectedTime] = useState<string>(
     isAddMode ? '09:00' : 
-    selectedItem?.date_time ? new Date(selectedItem.date_time).toTimeString().slice(0, 5) : 
+    selectedItem?.date_time ? new Date(selectedItem.date_time).toISOString().split('T')[1].substring(0, 5) : 
     '09:00'
   );
   const [takenSlots, setTakenSlots] = useState<string[]>([]);
@@ -64,7 +64,7 @@ const AppointmentManager: React.FC<AppointmentManagerProps> = ({
 
   // Status options
   const STATUS_OPTIONS = [
-    { value: "scheduled", label: "Scheduled" },
+    { value: "pending", label: "Pending" },
     { value: "confirmed", label: "Confirmed" },
     { value: "cancelled", label: "Cancelled" },
     { value: "completed", label: "Completed" },
@@ -136,6 +136,10 @@ const AppointmentManager: React.FC<AppointmentManagerProps> = ({
     if (selectedTime) {
       formData.set('time', selectedTime);
     }
+    
+    // Create ISO date string directly without timezone conversion
+    const dateTimeString = `${selectedDate}T${selectedTime}:00.000Z`;
+    formData.set('date_time', dateTimeString);
     
     // Include user ID from dropdown for new appointments
     if (isAddMode && selectedUserId) {
@@ -227,32 +231,34 @@ const AppointmentManager: React.FC<AppointmentManagerProps> = ({
               <div>
                 <label htmlFor="user" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Patient*</label>
                 {isAddMode ? (
-                  <Select 
-                    name="user" 
-                    value={selectedUserId} 
-                    onValueChange={setSelectedUserId}
-                    required
-                  >
-                    <SelectTrigger id="user" className="w-full">
-                      <SelectValue placeholder="Select a patient" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
+                  <div className="relative">
+                    <select
+                      id="user"
+                      name="user"
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                      required
+                    >
+                      <option value="" disabled>Select a patient</option>
                       {loadingUsers ? (
-                        <div className="flex items-center justify-center p-2">
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          <span>Loading users...</span>
-                        </div>
+                        <option value="" disabled>Loading users...</option>
                       ) : users.length > 0 ? (
                         users.map(user => (
-                          <SelectItem key={user.id} value={user.id.toString()}>
+                          <option key={user.id} value={user.id.toString()}>
                             {getUserDisplayName(user)}
-                          </SelectItem>
+                          </option>
                         ))
                       ) : (
-                        <div className="p-2 text-sm text-gray-500">No users found</div>
+                        <option value="" disabled>No users found</option>
                       )}
-                    </SelectContent>
-                  </Select>
+                    </select>
+                    {loadingUsers && (
+                      <div className="absolute inset-y-0 right-6 flex items-center">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <Input 
                     id="display_user" 
@@ -267,22 +273,21 @@ const AppointmentManager: React.FC<AppointmentManagerProps> = ({
               
               <div className="space-y-2">
                 <label htmlFor="status" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Status*</label>
-                <Select 
-                  name="status" 
-                  defaultValue={isAddMode ? "scheduled" : (selectedItem?.status || "scheduled")}
-                  required
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <div className="relative">
+                  <select
+                    id="status"
+                    name="status"
+                    defaultValue={isAddMode ? "scheduled" : (selectedItem?.status || "scheduled")}
+                    className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                    required
+                  >
                     {STATUS_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <option key={option.value} value={option.value}>
                         {option.label}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </select>
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -305,28 +310,26 @@ const AppointmentManager: React.FC<AppointmentManagerProps> = ({
               
               <div className="space-y-2">
                 <label htmlFor="time" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Time*</label>
-                <Select 
-                  name="time" 
-                  value={selectedTime}
-                  onValueChange={setSelectedTime}
-                  required
-                >
-                  <SelectTrigger id="time">
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <div className="relative">
+                  <select
+                    id="time"
+                    name="time"
+                    value={selectedTime}
+                    onChange={(e) => setSelectedTime(e.target.value)}
+                    className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                    required
+                  >
                     {TIME_SLOTS.map(slot => (
-                      <SelectItem 
+                      <option 
                         key={slot} 
                         value={slot}
                         disabled={!isSlotAvailable(slot)}
-                        className={!isSlotAvailable(slot) ? "opacity-50" : ""}
                       >
                         {slot} {!isSlotAvailable(slot) && "(Taken)"}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </select>
+                </div>
               </div>
               
               <div className="space-y-2 col-span-2">

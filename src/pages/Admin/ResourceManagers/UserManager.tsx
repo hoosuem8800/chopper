@@ -54,13 +54,29 @@ const UserManager: React.FC<UserManagerProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordsMatch, setPasswordsMatch] = useState(true);
-
+  
+  // State for role and subscription type
+  const [role, setRole] = useState<string>(isAddMode ? 'patient' : '');
+  const [subscriptionType, setSubscriptionType] = useState<string>(isAddMode ? 'free' : '');
+  
   // Update passwordsMatch when either password field changes
   useEffect(() => {
     if (isAddMode) {
       setPasswordsMatch(password === confirmPassword);
     }
   }, [password, confirmPassword, isAddMode]);
+  
+  // Initialize or update role and subscription type when dialog opens or selectedItem changes
+  useEffect(() => {
+    if (isAddMode) {
+      setRole('patient');
+      setSubscriptionType('free');
+    } else if (selectedItem) {
+      console.log("Setting role from selectedItem:", selectedItem.role);
+      setRole(selectedItem.role || 'patient');
+      setSubscriptionType(selectedItem.subscription_type || 'free');
+    }
+  }, [selectedItem, isAddMode, isOpen]);
 
   // Custom form submission handler
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -89,10 +105,12 @@ const UserManager: React.FC<UserManagerProps> = ({
           confirm_password: formData.get('confirm_password'),
           first_name: formData.get('first_name') || '',
           last_name: formData.get('last_name') || '',
-          role: formData.get('role') || 'patient',
-          subscription_type: formData.get('subscription_type') || 'free',
+          role: role,
+          subscription_type: subscriptionType,
           location: formData.get('location') || ''
         };
+        
+        console.log('Creating user with data:', userData);
         
         // Call register endpoint directly
         const response = await api.post('/users/register/', userData);
@@ -151,11 +169,13 @@ const UserManager: React.FC<UserManagerProps> = ({
           email: formData.get('email'),
           first_name: formData.get('first_name') || '',
           last_name: formData.get('last_name') || '',
-          role: formData.get('role') || 'patient',
-          subscription_type: formData.get('subscription_type') || 'free',
+          role: role,
+          subscription_type: subscriptionType,
           location: formData.get('location') || '',
           is_active: formData.get('is_active') === 'on'
         };
+        
+        console.log('Updating user with data:', userData);
         
         // Only include password if it was provided
         const password = formData.get('password');
@@ -294,40 +314,48 @@ const UserManager: React.FC<UserManagerProps> = ({
               </div>
               <div className="space-y-2">
                 <label htmlFor="role" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Role*</label>
-                <Select name="role" defaultValue={isAddMode ? "patient" : (selectedItem?.role || "patient")} required>
-                  <SelectTrigger 
+                <div className="relative">
+                  <select
                     id="role"
-                    className="focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                    name="role"
+                    value={role}
+                    onChange={(e) => {
+                      setRole(e.target.value);
+                      console.log("Role changed to:", e.target.value);
+                    }}
+                    className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                    required
                   >
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent className="border-cyan-100">
-                    <SelectItem value="patient">Patient</SelectItem>
-                    <SelectItem value="doctor">Doctor</SelectItem>
-                    <SelectItem value="assistant">Assistant</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                    <option value="assistant">Assistant</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <label htmlFor="subscription_type" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Subscription Type</label>
-                <Select name="subscription_type" defaultValue={isAddMode ? "free" : (selectedItem?.subscription_type || "free")}>
-                  <SelectTrigger id="subscription_type">
-                    <SelectValue placeholder="Select subscription" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="location" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Location</label>
-                <Input 
-                  id="location" 
-                  name="location"
-                  defaultValue={isAddMode ? '' : (selectedItem?.location || '')}
-                />
+                <div className="relative">
+                  <select
+                    id="subscription_type"
+                    name="subscription_type"
+                    value={subscriptionType}
+                    onChange={(e) => {
+                      setSubscriptionType(e.target.value);
+                      console.log("Subscription changed to:", e.target.value);
+                    }}
+                    className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                  >
+                    <option value="free">Free</option>
+                    <option value="premium">Premium</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+                  </div>
+                </div>
               </div>
               {!isAddMode && (
                 <div className="space-y-2 flex items-center gap-2">

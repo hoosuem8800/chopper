@@ -2425,23 +2425,23 @@ export const timeUtils = {
       time24 = timeUtils.to24Hour(timeString);
     }
     
-    // Parse date and time components
-    const [year, month, day] = dateString.split('-').map(Number);
-    const [hours, minutes] = time24.split(':').map(Number);
+    // Create ISO string directly without timezone conversion
+    const isoString = `${dateString}T${time24}:00.000Z`;
+    console.log('Created ISO string:', isoString);
     
-    // Create date using simple date constructor with local values
-    // This avoids any built-in timezone handling that might cause shifts
-    const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    // Create date object from ISO string
+    const date = new Date(isoString);
     
-    console.log('Created local date object:', {
+    console.log('Created date object:', {
       inputDate: dateString,
       inputTime: timeString,
       normalizedTime: time24,
-      resultDate: localDate.toISOString(),
-      resultString: localDate.toString()
+      isoString: isoString,
+      resultDate: date.toISOString(),
+      resultString: date.toString()
     });
     
-    return localDate;
+    return date;
   }
 };
 

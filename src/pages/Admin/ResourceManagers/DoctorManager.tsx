@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/services/api';
 import {
   Dialog,
@@ -36,6 +36,7 @@ interface Doctor {
   gender?: string;
   consultation_fee?: number;
   bio?: string;
+  is_accepting_new_patients?: boolean;
   [key: string]: any;
 }
 
@@ -56,7 +57,7 @@ interface DoctorManagerProps {
   isAddMode: boolean;
 }
 
-const DoctorManager: React.FC<DoctorManagerProps> = ({
+const DoctorManager: React.FC<DoctorManagerProps> = React.memo(({
   isOpen,
   onClose,
   selectedItem,
@@ -65,179 +66,318 @@ const DoctorManager: React.FC<DoctorManagerProps> = ({
 }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>(
     isAddMode ? '' : (selectedItem?.user && typeof selectedItem.user === 'object' 
       ? selectedItem.user.id.toString() 
       : selectedItem?.user?.toString() || '')
   );
 
+  // Update selectedUserId when selectedItem changes
+  useEffect(() => {
+    if (!isAddMode && selectedItem) {
+      setSelectedUserId(
+        selectedItem.user && typeof selectedItem.user === 'object'
+          ? selectedItem.user.id.toString()
+          : selectedItem.user?.toString() || ''
+      );
+    }
+  }, [isAddMode, selectedItem]);
+
   // Fetch users for dropdown
   useEffect(() => {
-    if (isOpen) {
-      fetchUsers();
-    }
-  }, [isOpen]);
-
-  const fetchUsers = async () => {
-    if (users.length > 0) return; // Don't fetch if we already have users
+    let isMounted = true;
     
-    setLoadingUsers(true);
-    try {
-      // Fetch all users
-      const response = await api.get('/users/');
-      let usersList: User[] = [];
+    const loadUsers = async () => {
+      // Only fetch users if not already loading and dialog is open
+      if (loadingUsers || !isOpen) return;
       
-      if (response.data && Array.isArray(response.data)) {
-        usersList = response.data;
-      } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
-        usersList = response.data.results;
-      }
-      
-      if (isAddMode) {
-        // For Add mode: Try to fetch all existing doctors to exclude them
-        try {
-          const doctorsResponse = await api.get('/doctors/');
-          const existingDoctors: { user: number }[] = [];
-          
-          if (doctorsResponse.data && Array.isArray(doctorsResponse.data)) {
-            existingDoctors.push(...doctorsResponse.data);
-          } else if (doctorsResponse.data && doctorsResponse.data.results && Array.isArray(doctorsResponse.data.results)) {
-            existingDoctors.push(...doctorsResponse.data.results);
-          }
-          
-          // Extract the user IDs of existing doctors
-          const existingDoctorUserIds = existingDoctors.map(doctor => {
-            if (typeof doctor.user === 'number') {
-              return doctor.user;
-            } else if (doctor.user && typeof doctor.user === 'object' && doctor.user !== null) {
-              // Check for id property with proper type assertion
-              const userObj = doctor.user as { id: number };
-              if ('id' in userObj) {
-                return userObj.id;
-              }
-            }
-            return null;
-          }).filter(id => id !== null);
-          
-          // Filter to exclude users who already have doctor profiles
-          const availableUsers = usersList.filter(user => !existingDoctorUserIds.includes(user.id));
-          setUsers(availableUsers);
-        } catch (error) {
-          console.error('Error fetching doctors:', error);
-          // If we can't get the doctors, just use all users
-          setUsers(usersList);
+      setLoadingUsers(true);
+      try {
+        // Fetch all users
+        const response = await api.get('/users/');
+        
+        // Check if component is still mounted before updating state
+        if (!isMounted) return;
+        
+        let usersList: User[] = [];
+        
+        if (response.data && Array.isArray(response.data)) {
+          usersList = response.data;
+        } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
+          usersList = response.data.results;
         }
-      } else {
-        // For Edit mode: Just load all users since we're not changing the user anyway
-        setUsers(usersList);
+        
+        // Filter to users with doctor role
+        const doctorUsers = usersList.filter(user => user.role === 'doctor');
+        
+        if (isAddMode) {
+          try {
+            // Get existing doctor profiles to exclude those users
+            const doctorsResponse = await api.get('/doctors/');
+            
+            if (!isMounted) return;
+            
+            // Extract existing doctor user IDs
+            const existingDoctorUserIds: number[] = [];
+            const doctorsData = Array.isArray(doctorsResponse.data) 
+              ? doctorsResponse.data 
+              : (doctorsResponse.data?.results || []);
+            
+            doctorsData.forEach((doctor: any) => {
+              if (typeof doctor.user === 'number') {
+                existingDoctorUserIds.push(doctor.user);
+              } else if (doctor.user && typeof doctor.user === 'object') {
+                existingDoctorUserIds.push(doctor.user.id);
+              }
+            });
+            
+            // Filter out users who already have doctor profiles
+            const availableDoctorUsers = doctorUsers.filter(
+              user => !existingDoctorUserIds.includes(user.id)
+            );
+            
+            if (isMounted) {
+              setUsers(availableDoctorUsers);
+              console.log(`Found ${availableDoctorUsers.length} available doctor users`);
+            }
+          } catch (error) {
+            console.error('Error fetching doctors:', error);
+            // Fallback to all doctor users if we can't filter
+            if (isMounted) {
+              setUsers(doctorUsers);
+              console.log(`Fallback: Using all ${doctorUsers.length} doctor users`);
+            }
+          }
+        } else {
+          // For Edit mode, we don't need to filter
+          if (isMounted) {
+            setUsers(usersList);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        if (isMounted) {
+          toast({
+            title: "Error",
+            description: "Failed to load users list. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingUsers(false);
+        }
       }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load users list. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingUsers(false);
+    };
+    
+    // Only load users when the dialog is open
+    if (isOpen) {
+      loadUsers();
     }
-  };
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, isAddMode]); // Only re-run when isOpen or isAddMode changes
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
     
-    // Ensure the user ID from the dropdown is included in the form data
-    if (selectedUserId) {
-      formData.set('user', selectedUserId);
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      return;
     }
     
+    setIsSubmitting(true);
+    
     try {
-      // Create an object with the form data
-      const doctorData: Record<string, any> = {
-        user: parseInt(selectedUserId),
-        specialty: formData.get('specialty'),
-        license_number: formData.get('license_number'),
-        years_of_experience: parseInt(formData.get('years_of_experience')?.toString() || '0'),
-        gender: formData.get('gender') || null,
-        consultation_fee: parseFloat(formData.get('consultation_fee')?.toString() || '0'),
-        bio: formData.get('bio') || ''
-      };
-
-      // Handle optional numeric fields
-      const ageValue = formData.get('age')?.toString();
-      if (ageValue && ageValue.trim() !== '') {
-        doctorData.age = parseInt(ageValue);
-      }
-
-      // Handle languages and education
-      doctorData.languages = formData.get('languages') || '';
-      doctorData.education = formData.get('education') || '';
-      doctorData.awards = formData.get('awards') || '';
-      doctorData.is_accepting_new_patients = true;
+      const form = e.currentTarget;
+      const formData = new FormData(form);
       
-      let response;
+      // Get form values
+      const userId = formData.get('user')?.toString() || selectedUserId;
+      const specialty = formData.get('specialty')?.toString() || 'general';
+      const licenseNumber = formData.get('license_number')?.toString() || '';
+      const yearsOfExperience = formData.get('years_of_experience')?.toString() || '0';
+      const gender = formData.get('gender')?.toString() || '';
+      const consultationFee = formData.get('consultation_fee')?.toString() || '0';
+      const bio = formData.get('bio')?.toString() || '';
+      
+      // Validate required fields
+      if (!userId) {
+        toast({
+          title: "Missing User",
+          description: "Please select a user for this doctor profile",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (!licenseNumber) {
+        toast({
+          title: "Missing License Number",
+          description: "Please enter a license number",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
       if (isAddMode) {
-        // Create new doctor
-        response = await api.post('/doctors/', doctorData);
-        
-        toast({
-          title: "Doctor Created",
-          description: "New doctor profile has been created successfully",
-          variant: "default",
-          className: "bg-green-50 border-green-200 text-green-800",
-        });
+        // Create a new doctor
+        try {
+          // Log what we're about to do
+          console.log('Attempting to create doctor with user ID:', userId);
+          
+          // Create doctor data with both user and user_id fields to ensure compatibility
+          const doctorData = {
+            user: parseInt(userId),
+            user_id: parseInt(userId),
+            specialty: specialty,
+            license_number: `${licenseNumber}-${Date.now()}`
+          };
+          
+          console.log('Creating doctor with data:', doctorData);
+          
+          // Make the API call
+          const response = await api.post('/doctors/', doctorData);
+          console.log('Doctor created successfully:', response.data);
+          
+          toast({
+            title: "Success",
+            description: "Doctor profile created successfully",
+            variant: "default",
+            className: "bg-green-50 border-green-200 text-green-800",
+          });
+          
+          onClose();
+          
+          // Reload the page to show the new doctor
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } catch (error: any) {
+          console.error('Error creating doctor:', error);
+          
+          // Log detailed error information
+          if (error.response) {
+            console.error('Error status:', error.response.status);
+            console.error('Error headers:', error.response.headers);
+            console.error('Error data:', error.response.data);
+            
+            // If the response contains HTML (Django error page)
+            if (typeof error.response.data === 'string' && error.response.data.includes('<html')) {
+              // Try to extract the error message from the HTML
+              const errorMatch = error.response.data.match(/<title>(.*?)<\/title>/);
+              if (errorMatch && errorMatch[1]) {
+                console.error('Extracted error from HTML:', errorMatch[1]);
+              }
+            }
+          }
+          
+          let errorMessage = "Failed to create doctor profile";
+          
+          if (error.response?.data) {
+            if (typeof error.response.data === 'string' && error.response.data.includes('IntegrityError')) {
+              if (error.response.data.includes('license_number')) {
+                errorMessage = "This license number is already in use";
+              } else if (error.response.data.includes('user_id')) {
+                errorMessage = "This user already has a doctor profile";
+              }
+            } else if (typeof error.response.data === 'object') {
+              if (error.response.data.license_number) {
+                errorMessage = Array.isArray(error.response.data.license_number)
+                  ? error.response.data.license_number[0]
+                  : error.response.data.license_number;
+              } else if (error.response.data.user) {
+                errorMessage = Array.isArray(error.response.data.user)
+                  ? error.response.data.user[0]
+                  : error.response.data.user;
+              } else if (error.response.data.detail) {
+                errorMessage = error.response.data.detail;
+              }
+            }
+          }
+          
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
       } else {
         // Update existing doctor
-        if (!selectedItem || !selectedItem.id) {
-          throw new Error("No doctor selected for editing");
-        }
-        
-        // Update doctor
-        response = await api.patch(`/doctors/${selectedItem.id}/`, doctorData);
-        
-        toast({
-          title: "Doctor Updated",
-          description: "Doctor profile has been updated successfully",
-          variant: "default",
-          className: "bg-green-50 border-green-200 text-green-800",
-        });
-      }
-      
-      // Close dialog and refresh
-      onClose();
-      
-      // Force a refresh to show the updated doctor in the list
-      window.location.reload();
-    } catch (error: any) {
-      console.error('Error with doctor profile:', error);
-      
-      let errorMessage = isAddMode ? 'Failed to create doctor' : 'Failed to update doctor';
-      
-      if (error.response?.data) {
-        if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (error.response.data.detail) {
-          errorMessage = error.response.data.detail;
-        } else {
-          // Check for field validation errors
-          const fieldErrors = Object.entries(error.response.data)
-            .filter(([key, value]) => Array.isArray(value))
-            .map(([key, value]) => `${key}: ${(value as string[]).join(', ')}`)
-            .join('; ');
-          
-          if (fieldErrors) {
-            errorMessage = fieldErrors;
+        try {
+          if (!selectedItem || !selectedItem.id) {
+            throw new Error("No doctor selected for editing");
           }
+          
+          // Prepare update data
+          const updateData = {
+            specialty: specialty,
+            license_number: licenseNumber,
+            years_of_experience: parseInt(yearsOfExperience),
+            consultation_fee: parseFloat(consultationFee),
+            bio: bio || ' ',
+            is_accepting_new_patients: true
+          };
+          
+          // Only add gender if provided
+          if (gender && gender !== '') {
+            updateData['gender'] = gender;
+          }
+          
+          // Update the doctor
+          await api.patch(`/doctors/${selectedItem.id}/`, updateData);
+          
+          toast({
+            title: "Success",
+            description: "Doctor profile updated successfully",
+            variant: "default",
+            className: "bg-green-50 border-green-200 text-green-800",
+          });
+          
+          onClose();
+          
+          // Reload the page to show the updated doctor
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } catch (error: any) {
+          console.error('Error updating doctor:', error);
+          
+          let errorMessage = "Failed to update doctor profile";
+          
+          if (error.response?.data) {
+            if (typeof error.response.data === 'object') {
+              if (error.response.data.license_number) {
+                errorMessage = Array.isArray(error.response.data.license_number)
+                  ? error.response.data.license_number[0]
+                  : error.response.data.license_number;
+              } else if (error.response.data.detail) {
+                errorMessage = error.response.data.detail;
+              }
+            }
+          }
+          
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
         }
       }
-      
+    } catch (error) {
+      console.error('Form submission error:', error);
       toast({
-        title: isAddMode ? "Error creating doctor" : "Error updating doctor",
-        description: errorMessage,
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -251,8 +391,18 @@ const DoctorManager: React.FC<DoctorManagerProps> = ({
     }
   };
 
+  // Memoize the onOpenChange handler to prevent unnecessary re-renders
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open && !isSubmitting) {
+      onClose();
+    }
+  }, [onClose, isSubmitting]);
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={handleOpenChange}
+    >
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto border-cyan-200">
         <DialogHeader>
           <DialogTitle className="text-cyan-800">{isAddMode ? 'Add New Doctor' : 'Edit Doctor'}</DialogTitle>
@@ -271,32 +421,34 @@ const DoctorManager: React.FC<DoctorManagerProps> = ({
               <div className="space-y-2">
                 <label htmlFor="user" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">User*</label>
                 {isAddMode ? (
-                  <Select 
-                    name="user" 
-                    value={selectedUserId} 
-                    onValueChange={setSelectedUserId}
-                    required
-                  >
-                    <SelectTrigger id="user" className="w-full">
-                      <SelectValue placeholder="Select a user" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <div className="relative">
+                    <select
+                      id="user"
+                      name="user"
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                      required
+                    >
+                      <option value="" disabled>Select a user</option>
                       {loadingUsers ? (
-                        <div className="flex items-center justify-center p-2">
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          <span>Loading users...</span>
-                        </div>
+                        <option value="" disabled>Loading users...</option>
                       ) : users.length > 0 ? (
                         users.map(user => (
-                          <SelectItem key={user.id} value={user.id.toString()}>
+                          <option key={user.id} value={user.id.toString()}>
                             {getUserDisplayName(user)}
-                          </SelectItem>
+                          </option>
                         ))
                       ) : (
-                        <div className="p-2 text-sm text-gray-500">No users found</div>
+                        <option value="" disabled>No users found</option>
                       )}
-                    </SelectContent>
-                  </Select>
+                    </select>
+                    {loadingUsers && (
+                      <div className="absolute inset-y-0 right-6 flex items-center">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   // For edit mode, show the input field since the user is already assigned
                   <Input 
@@ -317,21 +469,24 @@ const DoctorManager: React.FC<DoctorManagerProps> = ({
               </div>
               <div className="space-y-2">
                 <label htmlFor="specialty" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Specialty*</label>
-                <Select name="specialty" defaultValue={isAddMode ? "general" : (selectedItem?.specialty || "general")} required>
-                  <SelectTrigger id="specialty">
-                    <SelectValue placeholder="Select specialty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cardiology">Cardiology</SelectItem>
-                    <SelectItem value="neurology">Neurology</SelectItem>
-                    <SelectItem value="orthopedics">Orthopedics</SelectItem>
-                    <SelectItem value="dermatology">Dermatology</SelectItem>
-                    <SelectItem value="pediatrics">Pediatrics</SelectItem>
-                    <SelectItem value="general">General Medicine</SelectItem>
-                    <SelectItem value="pulmonology">Pulmonology</SelectItem>
-                    <SelectItem value="radiology">Radiology</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <select
+                    id="specialty"
+                    name="specialty"
+                    defaultValue={isAddMode ? "general" : (selectedItem?.specialty || "general")}
+                    className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                    required
+                  >
+                    <option value="cardiology">Cardiology</option>
+                    <option value="neurology">Neurology</option>
+                    <option value="orthopedics">Orthopedics</option>
+                    <option value="dermatology">Dermatology</option>
+                    <option value="pediatrics">Pediatrics</option>
+                    <option value="general">General Medicine</option>
+                    <option value="pulmonology">Pulmonology</option>
+                    <option value="radiology">Radiology</option>
+                  </select>
+                </div>
               </div>
               <div className="space-y-2">
                 <label htmlFor="years_of_experience" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Years of Experience</label>
@@ -353,15 +508,18 @@ const DoctorManager: React.FC<DoctorManagerProps> = ({
               </div>
               <div className="space-y-2">
                 <label htmlFor="gender" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Gender</label>
-                <Select name="gender" defaultValue={isAddMode ? undefined : (selectedItem?.gender || undefined)}>
-                  <SelectTrigger id="gender">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <select
+                    id="gender"
+                    name="gender"
+                    defaultValue={isAddMode ? "" : (selectedItem?.gender || "")}
+                    className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-500 transition-all duration-200"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
               </div>
               <div className="space-y-2">
                 <label htmlFor="consultation_fee" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Consultation Fee</label>
@@ -388,20 +546,29 @@ const DoctorManager: React.FC<DoctorManagerProps> = ({
               onClick={onClose} 
               type="button"
               className="transition-all duration-200 hover:bg-gray-100"
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button 
               type="submit"
               className="transition-all duration-200 hover:bg-cyan-700 bg-cyan-600"
+              disabled={isSubmitting}
             >
-              {isAddMode ? 'Add Doctor' : 'Save Changes'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {isAddMode ? 'Adding...' : 'Saving...'}
+                </>
+              ) : (
+                isAddMode ? 'Add Doctor' : 'Save Changes'
+              )}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
-};
+});
 
 export default DoctorManager; 

@@ -50,10 +50,17 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Plus, Pencil, Trash2, AlertCircle, RefreshCw, Filter, Search, X, CheckCircle, Lock, User, Calendar, ArrowRight, ArrowLeft, Clock, Mail } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, AlertCircle, RefreshCw, Filter, Search, X, CheckCircle, Lock, User, Calendar, ArrowRight, ArrowLeft, Clock, Mail, ChevronUp, ChevronDown, Eye, MoreHorizontal, Download } from 'lucide-react';
 import { toast } from "@/components/ui/use-toast";
 import axios from 'axios';
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Import ResourceManager components and utilities
 import ResourceManager from './ResourceManagers';
@@ -220,28 +227,17 @@ const ManagementPage: React.FC = (): ReactElement => {
           console.log('Base API Response:', response);
         }
         
+        let responseData = [];
+        
         // Handle different response structures
         if (response.data && Array.isArray(response.data)) {
           // Handle array response (all data at once, we'll paginate on client side)
           console.log(`Received array data with ${response.data.length} items`);
-          
-          // Client-side pagination
-          const itemsPerPage = 10;
-          const start = (page - 1) * itemsPerPage;
-          const end = start + itemsPerPage;
-          const paginatedData = response.data.slice(start, end);
-          
-          setData(response.data);
-          setFilteredData(response.data);
-          setTotalItems(response.data.length);
-          setTotalPages(Math.ceil(response.data.length / itemsPerPage));
+          responseData = response.data;
         } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
           // Handle paginated response from server
           console.log(`Received paginated data with ${response.data.results.length} items, total: ${response.data.count}`);
-          setData(response.data.results);
-          setFilteredData(response.data.results);
-          setTotalItems(response.data.count || response.data.results.length);
-          setTotalPages(Math.ceil((response.data.count || response.data.results.length) / 10));
+          responseData = response.data.results;
         } else if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
           // Handle object response (convert to array of single item)
           console.log('Received object data, converting to array');
@@ -251,35 +247,71 @@ const ManagementPage: React.FC = (): ReactElement => {
             for (const [key, value] of Object.entries(response.data)) {
               if (Array.isArray(value)) {
                 console.log(`Using array data from '${key}' property`);
-                
-                // Client-side pagination
-                const itemsPerPage = 10;
-                const start = (page - 1) * itemsPerPage;
-                const end = start + itemsPerPage;
-                const paginatedData = (value as any[]).slice(start, end);
-                
-                setData(value as any[]);
-                setFilteredData(value as any[]);
-                setTotalItems(value.length);
-                setTotalPages(Math.ceil(value.length / itemsPerPage));
+                responseData = value as any[];
                 break;
               }
             }
           } else {
             // It's a single object, wrap in array
-            setData([response.data]);
-            setFilteredData([response.data]);
-            setTotalItems(1);
-            setTotalPages(1);
+            responseData = [response.data];
           }
-        } else {
-          // Handle empty or unexpected response
-          console.warn('Received empty or unexpected data format', response.data);
-          setData([]);
-          setFilteredData([]);
-          setTotalItems(0);
-          setTotalPages(1);
         }
+        
+        // Special handling for consultations to enhance patient and doctor data
+        if (resource === 'consultations') {
+          // Fetch users and doctors data for enhancing consultations
+          let usersData: any[] = [];
+          let doctorsData: any[] = [];
+          
+          try {
+            const usersResponse = await api.get('/users/');
+            usersData = Array.isArray(usersResponse.data) 
+              ? usersResponse.data 
+              : (usersResponse.data?.results || []);
+              
+            const doctorsResponse = await api.get('/doctors/');
+            doctorsData = Array.isArray(doctorsResponse.data) 
+              ? doctorsResponse.data 
+              : (doctorsResponse.data?.results || []);
+          } catch (err) {
+            console.error('Error fetching users or doctors data:', err);
+          }
+          
+          // Enhance consultations with user and doctor objects
+          responseData = responseData.map(consultation => {
+            const enhancedConsultation = { ...consultation };
+            
+            // Enhance patient data if it's just an ID
+            if (typeof consultation.patient === 'number' || typeof consultation.patient === 'string') {
+              const patientId = Number(consultation.patient);
+              const patientData = usersData.find(user => user.id === patientId);
+              if (patientData) {
+                enhancedConsultation.patient = patientData;
+              }
+            }
+            
+            // Enhance doctor data if it's just an ID
+            if (typeof consultation.doctor === 'number' || typeof consultation.doctor === 'string') {
+              const doctorId = Number(consultation.doctor);
+              const doctorData = doctorsData.find(doctor => doctor.id === doctorId);
+              if (doctorData) {
+                enhancedConsultation.doctor = doctorData;
+              }
+            }
+            
+            return enhancedConsultation;
+          });
+        }
+        
+        // Client-side pagination
+        const itemsPerPage = 10;
+        const totalItems = responseData.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        
+        setData(responseData);
+        setFilteredData(responseData);
+        setTotalItems(totalItems);
+        setTotalPages(totalPages);
       } catch (err: any) {
         console.error(`Error fetching ${resource} data:`, err);
         
@@ -392,6 +424,75 @@ const ManagementPage: React.FC = (): ReactElement => {
     // Handle boolean values
     if (typeof value === 'boolean') {
       return value ? 'Yes' : 'No';
+    }
+    
+    // Special handling for consultations
+    if (resource === 'consultations') {
+      // Format patient field
+      if (column === 'patient') {
+        if (typeof value === 'object' && value !== null) {
+          return value.first_name && value.last_name 
+            ? `${value.first_name} ${value.last_name}`
+            : value.username || value.email || `ID: ${value.id}`;
+        }
+        return `Patient ID: ${value}`;
+      }
+      
+      // Format doctor field
+      if (column === 'doctor') {
+        if (typeof value === 'object' && value !== null) {
+          // If doctor has a user property that's an object
+          if (value.user && typeof value.user === 'object') {
+            const doctorUser = value.user;
+            return doctorUser.first_name && doctorUser.last_name 
+              ? `Dr. ${doctorUser.first_name} ${doctorUser.last_name}`
+              : doctorUser.username || doctorUser.email || `Doctor ID: ${value.id}`;
+          }
+          // If doctor object doesn't have a nested user object
+          return value.specialty 
+            ? `${value.specialty} Specialist (ID: ${value.id})`
+            : `Doctor ID: ${value.id}`;
+        }
+        return `Doctor ID: ${value}`;
+      }
+      
+      // Format consultation_type field
+      if (column === 'consultation_type') {
+        const typeMap: Record<string, string> = {
+          'initial': 'Initial Consultation',
+          'follow_up': 'Follow-up',
+          'emergency': 'Emergency',
+          'scan_review': 'Scan Review',
+          'specialist': 'Specialist Consultation'
+        };
+        return typeMap[value] || value;
+      }
+    }
+    
+    // Special handling for date_time in appointments to avoid timezone issues
+    if (column === 'date_time' && resource === 'appointments' && typeof value === 'string') {
+      try {
+        // Extract date and time parts directly from ISO string without timezone conversion
+        const isoString = value;
+        const datePart = isoString.split('T')[0];
+        const timePart = isoString.split('T')[1].substring(0, 5); // Get HH:MM
+        
+        // Format date for display
+        const [year, month, day] = datePart.split('-');
+        const formattedDate = `${month}/${day}/${year}`;
+        
+        // Format time for display
+        let hours = parseInt(timePart.split(':')[0]);
+        const minutes = timePart.split(':')[1];
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12; // Convert to 12-hour format
+        const formattedTime = `${hours}:${minutes} ${ampm}`;
+        
+        return `${formattedDate} ${formattedTime}`;
+      } catch (e) {
+        console.error('Error formatting date_time:', e);
+        return value; // Fallback to original value
+      }
     }
     
     // Handle date-like strings
@@ -605,18 +706,17 @@ const ManagementPage: React.FC = (): ReactElement => {
           };
           
           if (!userData.username || !userData.email || !userData.password || !userData.confirm_password) {
-          toast({
+            toast({
               title: "Error creating user",
               description: "Username, email, password and confirm password are required",
-            variant: "destructive",
-          });
-        setLoading(false);
-        return;
-      }
-      
-          // Use register endpoint for new users
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          
           response = await api.post('/users/register/', userData);
-          } else {
+        } else {
           // Existing user - update (don't send password)
           const userId = selectedItem.id;
           const userData = {
@@ -638,9 +738,9 @@ const ManagementPage: React.FC = (): ReactElement => {
           // Get the user ID from the form
           const userId = formData.get('user');
           if (!userId) {
-          toast({
+            toast({
               title: "Error creating profile",
-                description: "User ID is required",
+              description: "User ID is required",
               variant: "destructive",
             });
             setLoading(false);
@@ -692,16 +792,16 @@ const ManagementPage: React.FC = (): ReactElement => {
           const doctorData = new FormData();
           // Get the user ID from the form
           const userId = formData.get('user');
-        if (!userId) {
-          toast({
+          if (!userId) {
+            toast({
               title: "Error creating doctor",
-            description: "User ID is required",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-        
+              description: "User ID is required",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          
           // Add doctor data
           doctorData.append('user', userId.toString());
           doctorData.append('specialty', formData.get('specialty') || 'general');
@@ -712,7 +812,7 @@ const ManagementPage: React.FC = (): ReactElement => {
           doctorData.append('bio', formData.get('bio') || '');
           
           response = await api.post(endpoint, doctorData);
-            } else {
+        } else {
           // Updating an existing doctor
           const doctorId = selectedItem.id;
           const doctorData = {};
@@ -727,6 +827,65 @@ const ManagementPage: React.FC = (): ReactElement => {
           response = await api.patch(`${endpoint}${doctorId}/`, doctorData);
         }
       } 
+      // Special handling for appointments
+      else if (resource === 'appointments') {
+        if (!selectedItem || !selectedItem.id) {
+          // Creating a new appointment
+          const appointmentData = Object.fromEntries(formData.entries());
+          
+          // Use the date_time field directly without timezone conversion
+          if (appointmentData.date_time) {
+            console.log('Using direct date_time value:', appointmentData.date_time);
+          } else if (appointmentData.date && appointmentData.time) {
+            // If date_time isn't set but date and time are, create ISO string
+            appointmentData.date_time = `${appointmentData.date}T${appointmentData.time}:00.000Z`;
+            console.log('Created date_time from date and time:', appointmentData.date_time);
+          }
+          
+          response = await api.post(endpoint, appointmentData);
+        } else {
+          // Updating an existing appointment
+          const itemId = selectedItem.id;
+          const appointmentData = Object.fromEntries(formData.entries());
+          
+          // Use the date_time field directly without timezone conversion
+          if (appointmentData.date_time) {
+            console.log('Using direct date_time value for update:', appointmentData.date_time);
+          } else if (appointmentData.date && appointmentData.time) {
+            // If date_time isn't set but date and time are, create ISO string
+            appointmentData.date_time = `${appointmentData.date}T${appointmentData.time}:00.000Z`;
+            console.log('Created date_time from date and time for update:', appointmentData.date_time);
+          }
+          
+          response = await api.put(`${endpoint}${itemId}/`, appointmentData);
+        }
+      }
+      // Special handling for consultations
+      else if (resource === 'consultations') {
+        if (!selectedItem || !selectedItem.id) {
+          // Creating a new consultation
+          const consultationData = Object.fromEntries(formData.entries());
+          
+          // Validate required fields
+          if (!consultationData.patient || !consultationData.doctor || !consultationData.consultation_type || !consultationData.status) {
+            toast({
+              title: "Error creating consultation",
+              description: "Patient, doctor, consultation type, and status are required",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          
+          response = await api.post(endpoint, consultationData);
+        } else {
+          // Updating an existing consultation
+          const itemId = selectedItem.id;
+          const consultationData = Object.fromEntries(formData.entries());
+          
+          response = await api.put(`${endpoint}${itemId}/`, consultationData);
+        }
+      }
       // For all other resources
       else {
         if (!selectedItem || !selectedItem.id) {
@@ -734,7 +893,7 @@ const ManagementPage: React.FC = (): ReactElement => {
           // Convert formData to a regular object
           const data = Object.fromEntries(formData.entries());
           response = await api.post(endpoint, data);
-      } else {
+        } else {
           // Updating an existing item
           const itemId = selectedItem.id;
           const data = Object.fromEntries(formData.entries());
@@ -1034,6 +1193,53 @@ const ManagementPage: React.FC = (): ReactElement => {
     };
   }, []);
 
+  const [isViewDetailsDialogOpen, setIsViewDetailsDialogOpen] = useState(false);
+  const [viewDetailsItem, setViewDetailsItem] = useState<ApiResource | null>(null);
+
+  // Handle view details
+  const handleViewDetails = (item: ApiResource) => {
+    setViewDetailsItem(item);
+    setIsViewDetailsDialogOpen(true);
+  };
+
+  // Handle export to CSV
+  const handleExport = (item: ApiResource) => {
+    // Convert item to CSV format
+    const columns = getColumns();
+    const headers = columns.map(col => col.charAt(0).toUpperCase() + col.slice(1).replace(/_/g, ' '));
+    
+    // Create CSV content
+    let csvContent = headers.join(',') + '\n';
+    
+    // Add the single item's data
+    const rowData = columns.map(col => {
+      const value = item[col];
+      // Handle different value types
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'object') return JSON.stringify(value).replace(/,/g, ';');
+      return String(value).replace(/,/g, ';'); // Replace commas to avoid CSV issues
+    });
+    csvContent += rowData.join(',');
+    
+    // Create a blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${resource}_${item.id}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show success toast
+    toast({
+      title: "Export Successful",
+      description: `${getResourceDisplayName(resource)} data has been exported to CSV.`,
+      duration: 3000,
+    });
+  };
+
   if (!isAuthenticated || user?.role !== 'admin') {
     return null;
   }
@@ -1085,73 +1291,6 @@ const ManagementPage: React.FC = (): ReactElement => {
                 Manage {resource} data in the system
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => {
-                  setLoading(true);
-                  // Force refetch by resetting data and page
-                  setData([]);
-                  setFilteredData([]);
-                  
-                  // Reset page to 1 if not already there
-                  if (page !== 1) {
-                    setPage(1);
-                  } else {
-                    // If already on page 1, manually trigger data fetch
-                    const endpoint = resourceToEndpoint[resource as keyof typeof resourceToEndpoint];
-                    if (endpoint) {
-                      api.get(endpoint)
-                        .then(response => {
-                          console.log('Refresh successful:', response);
-                          
-                          // Process the response based on its format
-                          if (response.data && Array.isArray(response.data)) {
-                            setData(response.data);
-                            setFilteredData(response.data);
-                            setTotalItems(response.data.length);
-                          } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
-                            setData(response.data.results);
-                            setFilteredData(response.data.results);
-                            setTotalItems(response.data.count || response.data.results.length);
-                          }
-                          
-                          toast({
-                            title: "Refreshed",
-                            description: "Data has been refreshed successfully",
-                            variant: "default",
-                            className: "bg-green-50 border-green-200",
-                          });
-                        })
-                        .catch(error => {
-                          console.error('Error refreshing data:', error);
-                          toast({
-                            title: "Refresh failed",
-                            description: "Could not refresh data. Please try again.",
-                            variant: "destructive",
-                          });
-                        })
-                        .finally(() => {
-                          setLoading(false);
-                        });
-                    }
-                  }
-                }}
-                disabled={loading}
-                title="Refresh data"
-                className="transition-all duration-200 hover:text-cyan-600 hover:border-cyan-500"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-              <Button 
-                onClick={handleAdd} 
-                className="flex items-center gap-2 transition-all duration-200 hover:bg-white hover:text-cyan-600 hover:scale-105 hover:border-cyan-500 hover:border-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add New
-              </Button>
-            </div>
           </div>
         </CardHeader>
         
@@ -1196,14 +1335,9 @@ const ManagementPage: React.FC = (): ReactElement => {
                     placeholder="Search..."
                     value={searchTerm}
                     onChange={handleSearchChange}
-                    className="pl-10 focus:border-cyan-500 focus:ring focus:ring-cyan-200 transition-all duration-200"
+                    className="pl-10 focus:border-primary focus:ring focus:ring-primary/20 transition-all duration-200"
                   />
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                  </div>
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 </div>
               </div>
               
@@ -1212,12 +1346,20 @@ const ManagementPage: React.FC = (): ReactElement => {
                   variant="outline" 
                   size="sm" 
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`transition-all duration-200 ${showFilters ? "bg-blue-50" : ""} hover:text-cyan-600 hover:border-cyan-500 hover:border-2`}
+                  className={`transition-all duration-200 ${showFilters ? "bg-primary/10 text-primary border-primary" : ""} hover:text-primary hover:border-primary`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                  </svg>
+                  <Filter className="h-4 w-4 mr-2" />
                   Filters {Object.keys(filters).length > 0 && `(${Object.keys(filters).length})`}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  className="transition-all duration-200 hover:text-primary hover:border-primary"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
                 </Button>
                 
                 {(searchTerm || Object.keys(filters).length > 0 || sortField) && (
@@ -1225,17 +1367,21 @@ const ManagementPage: React.FC = (): ReactElement => {
                     variant="ghost" 
                     size="sm" 
                     onClick={clearFilters}
-                    className="hover:text-cyan-600 transition-all duration-200"
+                    className="hover:text-primary transition-all duration-200"
                   >
-                    Clear All
+                    <X className="h-4 w-4 mr-2" />
+                    Clear
                   </Button>
                 )}
               </div>
             </div>
             
             {showFilters && (
-              <div className="bg-gray-50 p-4 rounded-md mb-4">
-                <h3 className="text-sm font-medium mb-3">Filter by:</h3>
+              <div className="bg-gray-50 p-4 rounded-md mb-4 border border-gray-100 shadow-sm">
+                <h3 className="text-sm font-medium mb-3 flex items-center">
+                  <Filter className="h-4 w-4 mr-2 text-primary" />
+                  Filter by:
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {getFilterFields().map(field => (
                     <div key={field} className="space-y-1">
@@ -1248,7 +1394,7 @@ const ManagementPage: React.FC = (): ReactElement => {
                         placeholder={`Filter by ${field}...`}
                         value={filters[field] || ''}
                         onChange={(e) => handleFilterChange(field, e.target.value)}
-                        className="h-8 text-sm focus:border-cyan-500 focus:ring focus:ring-cyan-200 transition-all duration-200"
+                        className="h-8 text-sm focus:border-primary focus:ring focus:ring-primary/20 transition-all duration-200"
                       />
                     </div>
                   ))}
@@ -1257,74 +1403,132 @@ const ManagementPage: React.FC = (): ReactElement => {
             )}
             
             {/* Results summary */}
-            <div className="text-sm text-gray-500 mt-2">
-              {loading ? (
-                <p>Loading...</p>
-              ) : (
-                <p>
-                  Showing {getCurrentPageData().length} of {filteredData.length} 
-                  {filteredData.length !== totalItems ? 
-                   ` filtered results (${totalItems} total)` : 
-                   ` ${getResourceDisplayName(resource).toLowerCase()}`}
-                </p>
-              )}
+            <div className="text-sm text-gray-500 mt-2 flex justify-between items-center">
+              <p>
+                {loading ? (
+                  <span className="flex items-center">
+                    <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                    Loading...
+                  </span>
+                ) : (
+                  <span>
+                    Showing {getCurrentPageData().length} of {filteredData.length} 
+                    {filteredData.length !== totalItems ? 
+                    ` filtered results (${totalItems} total)` : 
+                    ` ${getResourceDisplayName(resource).toLowerCase()}`}
+                  </span>
+                )}
+              </p>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAdd}
+                className="transition-all duration-200 bg-primary/5 hover:bg-primary/10 text-primary border-primary/20 hover:border-primary"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add {getResourceDisplayName(resource)}
+              </Button>
             </div>
           </div>
           
           {loading ? (
             <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="flex flex-col items-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <p className="text-sm text-gray-500">Loading {getResourceDisplayName(resource)}...</p>
+              </div>
             </div>
           ) : !error && filteredData.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              {searchTerm || Object.keys(filters).length > 0 ? (
-                <>
-                  <p>No matching {resource} found with current filters</p>
-                  <Button 
-                    variant="link" 
-                    className="mt-2 text-cyan-600 hover:text-cyan-800 transition-colors duration-200" 
-                    onClick={clearFilters}
-                  >
-                    Clear Filters
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p>No {resource} data found in the system.</p>
-                  <Button 
-                    variant="link" 
-                    className="mt-2 text-cyan-600 hover:text-cyan-800 transition-colors duration-200" 
-                    onClick={handleRefresh}
-                  >
-                    Refresh
-                  </Button>
-                </>
-              )}
+            <div className="text-center py-12 px-4 border border-dashed border-gray-200 rounded-lg bg-gray-50">
+              <div className="flex flex-col items-center">
+                {searchTerm || Object.keys(filters).length > 0 ? (
+                  <>
+                    <Search className="h-10 w-10 text-gray-400 mb-3" />
+                    <p className="text-gray-600 font-medium">No matching {resource} found</p>
+                    <p className="text-gray-500 text-sm mt-1">Try adjusting your search or filters</p>
+                    <Button 
+                      variant="link" 
+                      className="mt-3 text-primary hover:text-primary/80 transition-colors duration-200" 
+                      onClick={clearFilters}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Filters
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-gray-100 p-4 rounded-full mb-3">
+                      <AlertCircle className="h-10 w-10 text-gray-400" />
+                    </div>
+                    <p className="text-gray-600 font-medium">No {resource} data found</p>
+                    <p className="text-gray-500 text-sm mt-1">Add your first {getResourceDisplayName(resource).toLowerCase()} to get started</p>
+                    <div className="flex gap-3 mt-4">
+                      <Button 
+                        variant="outline" 
+                        className="transition-colors duration-200" 
+                        onClick={handleRefresh}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Refresh
+                      </Button>
+                      <Button
+                        onClick={handleAdd}
+                        className="transition-colors duration-200"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add {getResourceDisplayName(resource)}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           ) : !error ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border border-gray-100 rounded-lg shadow-sm">
               <Table>
                 <TableCaption>
                   {totalItems > 0 ? (
-                    <>Showing {getCurrentPageData().length} of {filteredData.length} {getResourceDisplayName(resource)}</>
+                    <div className="flex items-center justify-center gap-2 py-2 text-sm font-medium">
+                      <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">
+                        {getCurrentPageData().length}
+                      </span> 
+                      <span>of</span> 
+                      <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">
+                        {filteredData.length}
+                      </span> 
+                      <span>{getResourceDisplayName(resource)}</span>
+                      {filteredData.length !== totalItems && (
+                        <span className="text-gray-500 ml-1">
+                          (filtered from {totalItems} total)
+                        </span>
+                      )}
+                    </div>
                   ) : (
-                    <>List of {getResourceDisplayName(resource)}</>
+                    <div className="flex items-center justify-center gap-2 py-2">
+                      <span>List of {getResourceDisplayName(resource)}</span>
+                    </div>
                   )}
                 </TableCaption>
-                <TableHeader>
+                <TableHeader className="bg-gray-50">
                   <TableRow>
                     {getColumns().map(column => (
                       <TableHead 
                         key={column}
-                        className={`cursor-pointer hover:bg-cyan-50 transition-colors duration-200 ${sortField === column ? 'bg-cyan-50 text-cyan-700' : ''}`}
+                        className={`cursor-pointer hover:bg-primary/5 transition-colors duration-200 ${sortField === column ? 'bg-primary/10 text-primary' : ''}`}
                         onClick={() => handleSort(column)}
                       >
                         <div className="flex items-center">
-                          {column.charAt(0).toUpperCase() + column.slice(1).replace(/_/g, ' ')}
-                          {sortField === column && (
-                            <span className="ml-1 text-cyan-700">
-                              {sortDirection === 'asc' ? '↑' : '↓'}
-                            </span>
+                          {column.includes('.') 
+                            ? column.split('.')[1].charAt(0).toUpperCase() + column.split('.')[1].slice(1).replace(/_/g, ' ')
+                            : column.charAt(0).toUpperCase() + column.slice(1).replace(/_/g, ' ')
+                          }
+                          {sortField === column ? (
+                            sortDirection === 'asc' ? 
+                              <ChevronUp className="ml-1 h-4 w-4 text-primary" /> : 
+                              <ChevronDown className="ml-1 h-4 w-4 text-primary" />
+                          ) : (
+                            <ChevronUp className="ml-1 h-4 w-4 opacity-0 group-hover:opacity-20" />
                           )}
                         </div>
                       </TableHead>
@@ -1333,7 +1537,7 @@ const ManagementPage: React.FC = (): ReactElement => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getCurrentPageData().map(item => {
+                  {getCurrentPageData().map((item, index) => {
                     // Debug info for profiles
                     if (resource === 'profiles') {
                       console.log(`Rendering profile item:`, item);
@@ -1342,7 +1546,11 @@ const ManagementPage: React.FC = (): ReactElement => {
                     return (
                     <TableRow 
                       key={item.id}
-                      className="transition-all duration-200 hover:bg-cyan-50 hover:shadow cursor-pointer"
+                      className={`transition-all duration-200 group border-b border-gray-200 last:border-b-0 ${
+                        index % 2 === 0 
+                          ? "bg-white" 
+                          : "bg-cyan-50/70"
+                      } hover:bg-primary/5`}
                     >
                         {getColumns().map(column => {
                           if (resource === 'profiles' && column.includes('user_data')) {
@@ -1353,30 +1561,48 @@ const ManagementPage: React.FC = (): ReactElement => {
                           }
                           
                           return (
-                        <TableCell key={`${item.id}-${column}`}>
+                        <TableCell 
+                          key={`${item.id}-${column}`}
+                          className="py-3"
+                        >
                               {formatCellValue(item, column)}
                         </TableCell>
                           );
                         })}
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => handleEdit(item)}
-                            className="transition-all duration-200 hover:text-cyan-600 hover:border-cyan-500 hover:bg-cyan-50"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => handleDelete(item)}
-                            className="transition-all duration-200 hover:text-red-600 hover:border-red-500 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="opacity-70 group-hover:opacity-100 transition-opacity duration-200 h-8 w-8"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(item)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              <span>Edit</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewDetails(item)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              <span>View Details</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExport(item)}>
+                              <Download className="mr-2 h-4 w-4" />
+                              <span>Export</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(item)}
+                              className="text-red-600 focus:text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                     )
@@ -1403,7 +1629,7 @@ const ManagementPage: React.FC = (): ReactElement => {
               maxWidth: '95vw'
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-100/20 to-blue-100/20 rounded-[22px] blur-xl -z-10 transform scale-105 opacity-60"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 rounded-[22px] blur-xl -z-10 transform scale-105 opacity-60"></div>
             <Pagination className="pagination-Glass p-3 px-4 rounded-2xl w-full">
               <PaginationContent className={`pagination-content flex ${totalPages <= 3 ? 'justify-evenly' : 'justify-center'}`}>
                 <PaginationItem className="pagination-item">
@@ -1432,7 +1658,7 @@ const ManagementPage: React.FC = (): ReactElement => {
                         isActive={pageNum === page}
                         onClick={() => setPage(pageNum)}
                         className={`pagination-link ${pageNum === page 
-                          ? "active bg-cyan-500/80 backdrop-blur-md text-white dark:bg-cyan-600/80 hover:bg-cyan-600/90 dark:hover:bg-cyan-500/90 shadow-lg" 
+                          ? "active bg-primary text-white hover:bg-primary/90 shadow-lg" 
                           : "hover:bg-white/60 dark:hover:bg-slate-800/50 transition-all duration-300 hover:scale-110"
                         }`}
                       >
@@ -1512,6 +1738,94 @@ const ManagementPage: React.FC = (): ReactElement => {
           isAddMode={true}
         />
       )}
+
+      {/* View Details Dialog */}
+      <Dialog open={isViewDetailsDialogOpen} onOpenChange={setIsViewDetailsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              {viewDetailsItem ? `${getResourceDisplayName(resource)} Details` : 'Details'}
+            </DialogTitle>
+            <DialogDescription>
+              Detailed information about this {resource} item
+            </DialogDescription>
+          </DialogHeader>
+          
+          {viewDetailsItem && (
+            <div className="mt-4 space-y-4">
+              {/* Item ID and basic info */}
+              <div className="bg-primary/5 p-3 rounded-md">
+                <div className="font-medium text-sm text-primary">ID: {viewDetailsItem.id}</div>
+              </div>
+              
+              {/* All properties */}
+              <div className="border rounded-md overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50 border-b">
+                      <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
+                      <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {Object.entries(viewDetailsItem).map(([key, value]) => (
+                      <tr key={key} className="hover:bg-gray-50">
+                        <td className="py-2 px-3 text-sm font-medium text-gray-900">{key}</td>
+                        <td className="py-2 px-3 text-sm text-gray-700">
+                          {(() => {
+                            // Format the value based on its type
+                            if (value === null || value === undefined) return '-';
+                            if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+                            if (typeof value === 'object') {
+                              if (Array.isArray(value)) {
+                                return value.length > 0 ? 
+                                  <div className="max-h-32 overflow-y-auto">
+                                    <pre className="text-xs bg-gray-50 p-2 rounded">{JSON.stringify(value, null, 2)}</pre>
+                                  </div> : '[]';
+                              }
+                              return (
+                                <div className="max-h-32 overflow-y-auto">
+                                  <pre className="text-xs bg-gray-50 p-2 rounded">{JSON.stringify(value, null, 2)}</pre>
+                                </div>
+                              );
+                            }
+                            // Handle date-like strings
+                            if (typeof value === 'string' && (value.includes('T') || value.includes('-')) && !isNaN(Date.parse(value))) {
+                              try {
+                                return new Date(value).toLocaleString();
+                              } catch (e) {
+                                return value;
+                              }
+                            }
+                            return String(value);
+                          })()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsViewDetailsDialogOpen(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => viewDetailsItem && handleExport(viewDetailsItem)}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export to CSV
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

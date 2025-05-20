@@ -3,11 +3,11 @@ import UserManager from './UserManager';
 import DoctorManager from './DoctorManager';
 import ProfileManager from './ProfileManager';
 import AppointmentManager from './AppointmentManager';
+import ConsultationManager from './ConsultationManager';
 import { ApiResource, ResourceManagerProps } from './types';
 
 // Import additional managers as they are created
 // import PaymentManager from './PaymentManager';
-// import ConsultationManager from './ConsultationManager';
 // import ScanManager from './ScanManager';
 
 // Factory function to get the appropriate manager component
@@ -21,11 +21,11 @@ export const getResourceManager = (resource: string) => {
       return ProfileManager;
     case 'appointments':
       return AppointmentManager;
+    case 'consultations':
+      return ConsultationManager;
     // Uncomment these as they are implemented
     // case 'payments':
     //   return PaymentManager;
-    // case 'consultations':
-    //   return ConsultationManager;
     // case 'scans':
     //   return ScanManager;
     default:
@@ -65,4 +65,5 @@ export {
   DoctorManager,
   ProfileManager,
   AppointmentManager,
+  ConsultationManager,
 }; 
