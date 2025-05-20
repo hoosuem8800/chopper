@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Crown } from 'lucide-react';
-import { buildApiUrl } from '@/config/api';
+import { paymentService } from '@/services/api';
 
 const PremiumConfirmationPage = () => {
   const { user } = useAuth();
@@ -11,23 +11,12 @@ const PremiumConfirmationPage = () => {
 
   const handleConfirmPremium = async () => {
     try {
-      const response = await fetch(buildApiUrl('users/upgrade_subscription/'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        // Dispatch event to refresh user data
-        window.dispatchEvent(new Event('refresh-user'));
-        navigate('/welcome-premium');
-      } else {
-        console.error('Failed to upgrade subscription');
-      }
+      const response = await paymentService.upgradeSubscription();
+      // Dispatch event to refresh user data
+      window.dispatchEvent(new Event('refresh-user'));
+      navigate('/welcome-premium');
     } catch (error) {
-      console.error('Error upgrading subscription:', error);
+      console.error('Failed to upgrade subscription:', error);
     }
   };
 
