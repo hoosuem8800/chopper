@@ -363,19 +363,7 @@ const ConsultationManager: React.FC<ConsultationManagerProps> = ({
               ))}
             </select>
           </div>
-          
-          {/* Duration (minutes) */}
-          <div className="space-y-2">
-            <Label htmlFor="duration" className="text-sm font-medium">Duration (minutes)</Label>
-            <Input
-              id="duration"
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              placeholder="Duration in minutes"
-              disabled={loading}
-            />
-          </div>
+
           
           {/* Notes */}
           <div className="space-y-2">
