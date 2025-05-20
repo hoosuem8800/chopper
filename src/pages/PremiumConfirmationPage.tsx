@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Crown } from 'lucide-react';
+import { buildApiUrl } from '@/config/api';
 
 const PremiumConfirmationPage = () => {
   const { user } = useAuth();
@@ -10,7 +11,7 @@ const PremiumConfirmationPage = () => {
 
   const handleConfirmPremium = async () => {
     try {
-      const response = await fetch('/api/users/upgrade-subscription/', {
+      const response = await fetch(buildApiUrl('users/upgrade_subscription/'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +63,7 @@ const PremiumConfirmationPage = () => {
 
             <div className="flex flex-col gap-3">
               <Button 
-                onClick={() => navigate('/welcome-premium')}
+                onClick={handleConfirmPremium}
                 className="w-full relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-sm px-4 py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2 group"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
