@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,16 +11,11 @@ import { customToast } from '@/lib/toast';
 
 const SignupPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { register } = useAuth(); 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  // Check if premium plan parameter is in URL
-  const params = new URLSearchParams(location.search);
-  const isPremium = params.get('plan') === 'premium';
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -90,7 +85,7 @@ const SignupPage = () => {
         first_name: formData.firstName,
         last_name: formData.lastName,
         role: 'patient',
-        subscription_type: isPremium ? 'premium' : 'free',
+        subscription_type: 'free',
         profile: {
           phone_number: formData.phoneNumber || '',
           address: formData.location || ''
@@ -150,9 +145,7 @@ const SignupPage = () => {
         <div className="text-center mb-8 animate-bounce-in">
           <h1 className="text-3xl font-bold text-gradient mb-2">Create Account</h1>
           <p className="text-gray-600">
-            {isPremium 
-              ? "Join our premium tier for advanced features and priority support"
-              : "Join our community for personalized healthcare services"}
+            Join our community for personalized healthcare services
           </p>
         </div>
         
@@ -160,10 +153,7 @@ const SignupPage = () => {
           <CardHeader className="space-y-2 pb-0 pt-6">
             <CardTitle className="text-2xl font-bold">Sign Up</CardTitle>
             <CardDescription className="text-gray-500">
-              {isPremium 
-                ? "Complete your premium registration"
-                : "Enter your details to get started"
-              }
+              Enter your details to get started
             </CardDescription>
           </CardHeader>
           
@@ -354,7 +344,7 @@ const SignupPage = () => {
                       Creating account...
                     </>
                   ) : (
-                    `Create Account ${isPremium ? '(Premium)' : ''}`
+                    "Create Account"
                   )}
                 </Button>
               </div>
