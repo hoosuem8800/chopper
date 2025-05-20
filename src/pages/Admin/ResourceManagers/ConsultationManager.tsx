@@ -318,8 +318,6 @@ const ConsultationManager: React.FC<ConsultationManagerProps> = ({
               <option value="initial">Initial Consultation</option>
               <option value="follow_up">Follow-up</option>
               <option value="emergency">Emergency</option>
-              <option value="scan_review">Scan Review</option>
-              <option value="specialist">Specialist Consultation</option>
             </select>
           </div>
           
@@ -337,8 +335,7 @@ const ConsultationManager: React.FC<ConsultationManagerProps> = ({
             >
               <option value="" disabled>Select status</option>
               <option value="pending">Pending</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="in_progress">In Progress</option>
+              <option value="accepted">Accepted</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
