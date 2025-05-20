@@ -152,7 +152,7 @@ const PricingPage = () => {
           </div>
         </div>
       </main>
-    </div>
+          </div>
   );
 };
 

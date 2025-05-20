@@ -30,7 +30,7 @@ const WelcomePremiumPage = () => {
         angle: 60,
         spread: 55,
         origin: { x: 0 },
-        colors: ['#00C1D4', '#4A90E2', '#3b82f6', '#60a5fa']
+        colors: ['#00C1D4', '#4A90E2', '#FFD700', '#f59e0b']
       });
       
       confetti({
@@ -38,7 +38,7 @@ const WelcomePremiumPage = () => {
         angle: 120,
         spread: 55,
         origin: { x: 1 },
-        colors: ['#00C1D4', '#4A90E2', '#3b82f6', '#60a5fa']
+        colors: ['#00C1D4', '#4A90E2', '#FFD700', '#f59e0b']
       });
     };
 
@@ -64,16 +64,16 @@ const WelcomePremiumPage = () => {
       {/* Background decoration elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
         <div className="absolute top-20 left-10 h-64 w-64 rounded-full bg-primary/10 filter blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 h-64 w-64 rounded-full bg-highlight-blue/10 filter blur-3xl"></div>
+        <div className="absolute bottom-20 right-10 h-64 w-64 rounded-full bg-amber-500/10 filter blur-3xl"></div>
       </div>
       
       <div className="container mx-auto px-4 py-8 md:py-16 flex-grow flex flex-col items-center justify-center">
         <div className="relative w-full max-w-lg bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-100 overflow-hidden transform transition-all duration-500 animate-fade-in">
           {/* Premium badge */}
           <div className="absolute -top-2 -right-2">
-            <div className="bg-gradient-to-r from-primary to-highlight-blue text-white text-xs font-extrabold tracking-widest px-4 py-1.5 rounded-lg shadow-xl border border-primary/20 flex items-center transform translate-y-3 rotate-3">
+            <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-400 text-white text-xs font-extrabold tracking-widest px-4 py-1.5 rounded-lg shadow-xl border border-amber-200 flex items-center transform translate-y-3 rotate-3">
               <span className="mr-1.5 bg-white/90 rounded-full p-0.5 flex items-center justify-center shadow-inner">
-                <Crown className="h-3 w-3 text-primary" />
+                <Crown className="h-3 w-3 text-amber-500" />
               </span>
               PREMIUM
             </div>
@@ -81,9 +81,9 @@ const WelcomePremiumPage = () => {
           
           {/* Header section */}
           <div className="pt-20 pb-8 px-8 text-center relative">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 translate-y-1/4 w-20 h-20 bg-gradient-to-br from-primary to-highlight-blue rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 translate-y-1/4 w-20 h-20 bg-gradient-to-br from-primary to-amber-500 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
               <Crown className="h-10 w-10 text-white" />
-            </div>
+        </div>
         
             <h1 className="text-3xl font-bold gradient-text mt-5 mb-3">Welcome to Premium!</h1>
             
@@ -91,7 +91,7 @@ const WelcomePremiumPage = () => {
               {user?.first_name ? `Congratulations ${user.first_name}! ` : 'Congratulations! '}
               Your premium subscription is now active with all exclusive features unlocked.
             </p>
-          </div>
+        </div>
         
           {/* Divider */}
           <div className="w-full px-8">
@@ -116,8 +116,8 @@ const WelcomePremiumPage = () => {
                 </div>
               </div>
               
-              <div className="flex items-start bg-gradient-to-r from-blue-50 to-primary/5 p-3 rounded-lg border border-primary/10">
-                <div className="bg-primary rounded-full p-1.5 mr-3 shrink-0">
+              <div className="flex items-start bg-gradient-to-r from-amber-50 to-amber-100/30 p-3 rounded-lg border border-amber-200/20">
+                <div className="bg-amber-500 rounded-full p-1.5 mr-3 shrink-0">
                   <Check className="h-3.5 w-3.5 text-white" />
                 </div>
                 <div>
@@ -126,8 +126,8 @@ const WelcomePremiumPage = () => {
                 </div>
               </div>
               
-              <div className="flex items-start bg-gradient-to-r from-blue-50 to-primary/5 p-3 rounded-lg border border-primary/10">
-                <div className="bg-primary rounded-full p-1.5 mr-3 shrink-0">
+              <div className="flex items-start bg-gradient-to-r from-amber-50 to-amber-100/30 p-3 rounded-lg border border-amber-200/20">
+                <div className="bg-amber-500 rounded-full p-1.5 mr-3 shrink-0">
                   <Check className="h-3.5 w-3.5 text-white" />
                 </div>
                 <div>
@@ -146,38 +146,38 @@ const WelcomePremiumPage = () => {
                 </div>
               </div>
             </div>
-          </div>
+        </div>
         
           {/* Call to action buttons */}
           <div className="p-8 pt-2">
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button 
-                onClick={() => navigate('/scan')}
-                className="premium-button"
-              >
-                <span className="premium-button-content">
-                  <Crown />
-                  Start Premium Scan
-                  <ArrowRight className="arrow-icon" />
-                </span>
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={() => navigate('/profile')}
+          <Button 
+            onClick={() => navigate('/scan')}
+            className="w-full relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm hover:shadow-md transition-all duration-300 text-sm px-4 py-2.5 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-cyan-300 hover:border-2 group"
+          >
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              <Crown className="text-white hover-button-icon transition-colors duration-300" />
+                Start Premium Scan
+              <ArrowRight className="h-4 w-4 transform transition-all duration-300 hover-button-icon group-hover:translate-x-1" />
+            </span>
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/profile')}
                 className="w-full border-primary text-primary hover:bg-primary/5"
-              >
+          >
                 View Premium Profile
-              </Button>
-            </div>
+          </Button>
+        </div>
             
             {/* Automatic redirect notice */}
             <p className="text-center text-xs text-gray-500 mt-4">
               Redirecting to home page in a few seconds...
             </p>
           </div>
-        </div>
       </div>
+          </div>
     </div>
   );
 };
