@@ -13,6 +13,7 @@ import LoginPage from './pages/LoginPage';
 import WelcomePage from './pages/WelcomePage';
 import PaymentPageWrapper from './pages/PaymentPageWrapper';
 import WelcomePremiumPage from './pages/WelcomePremiumPage';
+import PremiumConfirmationPage from './pages/PremiumConfirmationPage';
 import AppDash from '@/pages/AppDash';
 import DoctorDash from '@/pages/DoctorDash';
 import ScanPage from '@/pages/ScanPage';
@@ -353,6 +354,17 @@ const AppRoutes = () => {
               <RouteChangeHandler />
               <AdminPage />
             </ProtectedRoute>
+          }
+        />
+        
+        {/* New Premium Confirmation Route */}
+        <Route
+          path="/premium-confirmation"
+          element={
+            <ProtectedRouteComponent>
+              <RouteChangeHandler />
+              <PremiumConfirmationPage />
+            </ProtectedRouteComponent>
           }
         />
         

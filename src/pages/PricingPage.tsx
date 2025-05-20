@@ -6,17 +6,27 @@ import { Link, useNavigate } from 'react-router-dom';
 import FloatingIcons from '@/components/FloatingIcons';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn, chopperButton } from '@/lib/utils';
+import { paymentService } from '@/services/api';
+import { customToast } from '@/lib/toast';
 
 const PricingPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
-  const handleGetPremium = () => {
-    if (isAuthenticated) {
-      navigate('/payment');
-    } else {
+  const handleGetPremium = async () => {
+    if (!isAuthenticated) {
       navigate('/signup?plan=premium');
+      return;
     }
+
+    // If user is already premium, show message
+    if (user?.subscription_type === 'premium') {
+      customToast.info('You are already a premium user!');
+      return;
+    }
+
+    // Navigate to confirmation page
+    navigate('/premium-confirmation');
   };
 
   return (
@@ -113,7 +123,7 @@ const PricingPage = () => {
                   className={cn("w-full py-6 text-lg", chopperButton)}
                   onClick={handleGetPremium}
                 >
-                  Get Premium
+                  {user?.subscription_type === 'premium' ? 'Already Premium' : 'Get Premium'}
                 </Button>
               </CardFooter>
             </Card>
@@ -142,7 +152,7 @@ const PricingPage = () => {
           </div>
         </div>
       </main>
-          </div>
+    </div>
   );
 };
 

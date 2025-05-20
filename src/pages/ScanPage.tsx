@@ -189,9 +189,42 @@ const ScanPage = () => {
       transform: translateX(2px);
     }
     
+    /* Opera-specific styles */
+    @media all and (-webkit-min-device-pixel-ratio:0) and (min-resolution:.001dpcm) {
+      .download-btn:hover {
+        background: white !important;
+      }
+      .download-btn:hover svg,
+      .download-btn:hover span {
+        color: #06b6d4 !important;
+      }
+    }
+    
+    /* Chrome and Edge specific styles */
+    @media screen and (-webkit-min-device-pixel-ratio:0) {
+      .download-btn:hover {
+        background: white !important;
+      }
+      .download-btn:hover svg,
+      .download-btn:hover span {
+        color: #06b6d4 !important;
+      }
+    }
+    
+    /* Firefox specific styles */
+    @-moz-document url-prefix() {
+      .download-btn:hover {
+        background: white !important;
+      }
+      .download-btn:hover svg,
+      .download-btn:hover span {
+        color: #06b6d4 !important;
+      }
+    }
+    
     /* Enhanced SVG hover effects for Quick Scan button */
     .download-btn:hover .hover-button-icon {
-      color: #06b6d4 !important; /* Cyan-500 */
+      color: #06b6d4 !important;
       filter: drop-shadow(0 0 2px rgba(6, 182, 212, 0.5));
       transform: scale(1.1);
     }
@@ -1840,11 +1873,20 @@ const ScanPage = () => {
       scanFormData.append('confidence_score', normalizedConfidence.toString());
       scanFormData.append('status', 'completed');
       
-      await api.post('/scans/', scanFormData, {
+      // Save the scan and get the response
+      const scanResponse = await api.post('/scans/', scanFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
         },
+      });
+
+      // Update the prediction result with the complete scan data
+      setPredictionResult({
+        ...scanResponse.data,
+        prediction: prediction,
+        confidence: numericConfidence,
+        classProbs: classProbs
       });
 
       customToast.success('X-ray analyzed successfully');
@@ -2743,22 +2785,31 @@ const ScanPage = () => {
                                       {xray.result && xray.result.toLowerCase() !== 'normal' && (
                                         <Button
                                           onClick={() => navigate('/consultation')}
-                                          className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-2 xs:px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-red-300 hover:border-2 whitespace-nowrap"
+                                          className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-2 xs:px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-red-300 hover:border-2 whitespace-nowrap group"
                                         >
                                           <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white hover-button-icon transition-colors duration-300 flex-shrink-0">
-                                              <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
-                                              <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
-                                            </svg>
-                                            <span>Consult Doctor</span>
                                             <svg 
-                                              className="h-4 w-4 transform transition-all duration-300 hover-button-icon" 
                                               xmlns="http://www.w3.org/2000/svg" 
-                                              width="24" 
-                                              height="24" 
+                                              width="14" 
+                                              height="14" 
                                               viewBox="0 0 24 24" 
                                               fill="none" 
-                                              stroke="currentColor"
+                                              stroke="currentColor" 
+                                              strokeWidth="2" 
+                                              strokeLinecap="round" 
+                                              strokeLinejoin="round" 
+                                              className="text-white group-hover:text-red-500 transition-colors duration-300 flex-shrink-0"
+                                            >
+                                              <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1"></path>
+                                              <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3"></path>
+                                            </svg>
+                                            <span className="truncate group-hover:text-red-500 transition-colors duration-300">Consult Doctor</span>
+                                            <svg 
+                                              className="h-4 w-4 transform transition-all duration-300 group-hover:text-red-500 group-hover:translate-x-0.5" 
+                                              xmlns="http://www.w3.org/2000/svg" 
+                                              viewBox="0 0 24 24" 
+                                              fill="none" 
+                                              stroke="currentColor" 
                                               strokeWidth="2" 
                                               strokeLinecap="round" 
                                               strokeLinejoin="round"
@@ -3083,22 +3134,31 @@ const ScanPage = () => {
                                   {scan.result && scan.result.toLowerCase() !== 'normal' && (
                                   <Button
                                     onClick={() => navigate('/consultation')}
-                                    className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-2 xs:px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-red-300 hover:border-2 whitespace-nowrap"
+                                    className="consult-btn relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white hover:text-transparent hover:bg-clip-text hover:from-red-500 hover:to-rose-600 text-white shadow-sm hover:shadow-md transition-all duration-300 text-xs sm:text-sm font-medium px-2 xs:px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:-translate-y-0.5 active:translate-y-0 border border-transparent hover:border-red-300 hover:border-2 whitespace-nowrap group"
                                   >
                                     <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white hover-button-icon transition-colors duration-300 flex-shrink-0">
-                                        <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1" />
-                                        <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3" />
-                                      </svg>
-                                      <span className="truncate">Consult Doctor</span>
                                       <svg 
-                                        className="h-4 w-4 transform transition-all duration-300 hover-button-icon" 
                                         xmlns="http://www.w3.org/2000/svg" 
-                                        width="24" 
-                                        height="24" 
+                                        width="14" 
+                                        height="14" 
                                         viewBox="0 0 24 24" 
                                         fill="none" 
-                                        stroke="currentColor"
+                                        stroke="currentColor" 
+                                        strokeWidth="2" 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round" 
+                                        className="text-white group-hover:text-red-500 transition-colors duration-300 flex-shrink-0"
+                                      >
+                                        <path d="M15.6 11.6L22 7v10l-6.4-4.5v-1"></path>
+                                        <path d="M18 8a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3"></path>
+                                      </svg>
+                                      <span className="truncate group-hover:text-red-500 transition-colors duration-300">Consult Doctor</span>
+                                      <svg 
+                                        className="h-4 w-4 transform transition-all duration-300 group-hover:text-red-500 group-hover:translate-x-0.5" 
+                                        xmlns="http://www.w3.org/2000/svg" 
+                                        viewBox="0 0 24 24" 
+                                        fill="none" 
+                                        stroke="currentColor" 
                                         strokeWidth="2" 
                                         strokeLinecap="round" 
                                         strokeLinejoin="round"
